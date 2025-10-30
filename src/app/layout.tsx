@@ -4,7 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: "Hakkan | Full Stack Developer",
+  title: "Hakkan Parbej Shah - Full Stack Developer",
   description:
     "Hakkan Parbej Shah is a Full Stack Developer skilled in building modern, scalable, and efficient web applications. Passionate about clean code, seamless user experiences, and turning ideas into impactful digital products.",
   manifest: "/manifest.webmanifest",
@@ -32,19 +32,19 @@ export const metadata: Metadata = {
   category: "Personal Portfolio / Web Development",
   applicationName: "Hakkan Portfolio",
   robots: "index, follow",
-  themeColor: "#00ffff", // Clean neon accent for modern look
+  themeColor: "#00ffff", 
   openGraph: {
-    title: "Hakkan | Full Stack Developer",
+    title: "Hakkan Parbej Shah - Full Stack Developer",
     description:
       "Explore the portfolio of Hakkan Parbej Shah — a Full Stack Developer dedicated to crafting clean, efficient, and high-quality web applications with modern technologies.",
     url: "https://hakkan.is-a.dev/",
-    siteName: "Hakkan Portfolio",
+    siteName: "Hakkan Parbej Shah Portfolio",
     images: [
       {
-        url: "https://github.com/HakkanShah.png",
+        url: "https://hakkan.is-a.dev/profile.jpg",
         width: 1200,
         height: 630,
-        alt: "Hakkan Parbej Shah Portfolio"
+        alt: "Hakkan Parbej Shah Full Stack Portfolio"
       }
     ],
     locale: "en_US",
@@ -52,11 +52,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hakkan Parbej Shah | Full Stack Developer",
+    title: "Hakkan Parbej Shah - Full Stack Developer",
     description:
       "Full Stack Developer passionate about building scalable, modern, and user-focused web applications. Explore my portfolio and projects.",
     creator: "@HakkanShah",
-    images: ["https://github.com/HakkanShah.png"]
+    images: ["https://hakkan.is-a.dev/profile.jpg"]
   }
 };
 
