@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem; /* Offset for sticky header */
+}
+
+@layer base {
+  :root {
+    --background: 48 100% 98%; /* Off-white */
+    --foreground: 20 5% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 5% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 5% 15%;
+    --primary: 0 84% 44%; /* Retro Red */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 220 13% 91%;
+    --muted-foreground: 220 9% 45%;
+    --accent: 211 92% 51%; /* Retro Blue */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 20 5% 15%;
+    --input: 220 13% 85%;
+    --ring: 0 84% 54%;
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 20 5% 7%;
+    --foreground: 48 100% 98%;
+    --card: 20 5% 15%;
+    --card-foreground: 48 100% 98%;
+    --popover: 20 5% 10%;
+    --popover-foreground: 48 100% 98%;
+    --primary: 0 74% 54%; /* Retro Red - Dark */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 28% 17%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 215 16% 50%;
+    --accent: 211 82% 61%; /* Retro Blue - Dark */
+    --accent-foreground: 20 5% 15%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 48 100% 98%;
+    --input: 215 28% 17%;
+    --ring: 0 74% 64%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+}
+
+@layer utilities {
+  .section-container {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .section-padding {
+    @apply py-16 md:py-24;
+  }
+}
