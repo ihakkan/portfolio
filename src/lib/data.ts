@@ -1,7 +1,7 @@
-
 import { Github, Linkedin, Mail, Phone } from 'lucide-react';
 import {
   SiNextdotjs,
+  SiVisualstudiocode,
   SiReact,
   SiTypescript,
   SiNodedotjs,
