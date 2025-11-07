@@ -61,6 +61,17 @@ export type Project = {
 };
 
 export const PROJECTS: Project[] = [
+    {
+    title: 'MockHick',
+    description: 'Voice-Driven AI-powered web app that simulates mock interviews.',
+    longDescription: 'MockHick is an innovative, AI-powered web application designed to help users prepare for job interviews. Inspired by the Hindi word "Maukhik" (मौखिक), which means oral or spoken, the app simulates a realistic interview experience. It leverages Gemini AI to dynamically generate questions, provide real-time transcription, and deliver detailed, personalized feedback to help users build confidence and land their dream job.',
+    why: 'I built MockHick to help students and job seekers practice interviews in a realistic way without needing another person. Many people feel underconfident or don’t always have someone available to take their mock interviews. MockHick uses AI, voice interaction (Web Speech API), and clean UI (ShadCN UI) to simulate real interview scenarios, provide feedback, and build communication confidence. The main goal is to make interview preparation more accessible, interactive, and less stressful.',
+    thumbnail: '/project-images/mockhick.png',
+    tags: ['Next.js', 'TypeScript', 'Firebase', 'TailwindCSS', 'ShadCN', 'Web Speech API', 'Gemini AI'],
+    liveUrl: 'https://mockhick.vercel.app/',
+    repoUrl: 'https://github.com/HakkanShah/mockhick',
+    aiHint: 'ai interview coach',
+  },
   {
     title: 'ConfessCode',
     description: 'An anonymous confession platform ensuring user privacy and secure messaging.',
@@ -194,7 +205,7 @@ export const SKILLS = [
     skills: [
       { name: "Git", icon: SiGit, color: "#F05032" },
       { name: "GitHub", icon: SiGithub, color: "#181717" },
-      { name: "VS Code", icon: SiVercel, color: "#007ACC" },
+      { name: "VS Code", icon: SiVisualstudiocode, color: "#007ACC" },
       { name: "Firebase", icon: SiFirebase, color: "#FFCA28" },
       { name: "Vercel", icon: SiVercel, color: "#000000" },
       { name: "Netlify", icon: SiNetlify, color: "#00C7B7" },
@@ -248,7 +259,7 @@ export const EDUCATION = [
 ];
 
 export const CERTIFICATIONS = [
-    { name: 'Full-Stack BCT Training', issuer: 'Euphoria GenX', url: 'https://drive.google.com/file/d/1EFpyLejBPAHJbNjRSWPk2-EvdYJKpisG/view?usp=sharing' },
+    { name: 'Full-Stack(MERN) BCT Training', issuer: 'Euphoria GenX', url: 'https://drive.google.com/file/d/1EFpyLejBPAHJbNjRSWPk2-EvdYJKpisG/view?usp=sharing' },
     { name: 'AWS AI-ML Virtual Internship', issuer: 'Eduskills Foundation & AWS', url: 'https://drive.google.com/file/d/17ak5Lc2GkG4X2Hh0WGLOOwajs1GQYq5J/view?usp=sharing' },
     { name: 'Palo Alto Cybersecurity', issuer: 'Eduskills Foundation & Palo Alto', url: 'https://drive.google.com/file/d/18Bm-x7BD8kj4-EZnPQYFQt6WbV6I0Jiv/view?usp=sharing' },
     { name: 'Blue Prism Automation', issuer: 'Eduskills Foundation & Blue Prism', url: 'https://drive.google.com/file/d/1S2qRZhRRxTqQg2U6mso1ljgzTKaVRALT/view?usp=sharing' },
