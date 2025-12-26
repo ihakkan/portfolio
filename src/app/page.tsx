@@ -5,6 +5,7 @@ import HeroSection from '@/components/hero-section';
 import FloatingElements from '@/components/floating-elements';
 import ScrollProgress from '@/components/scroll-progress';
 import CursorFollower from '@/components/cursor-follower';
+import AssistantWrapper from '@/components/assistant/assistant-wrapper';
 
 // Lazy load below-the-fold sections for faster initial load
 const AboutSection = dynamic(() => import('@/components/about-section'));
@@ -64,6 +65,9 @@ export default function Home() {
       <Suspense fallback={null}>
         <Footer />
       </Suspense>
+
+      {/* Interactive Portfolio Assistant */}
+      <AssistantWrapper />
     </div>
   );
 }

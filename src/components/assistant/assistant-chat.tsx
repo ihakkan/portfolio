@@ -1,0 +1,376 @@
+'use client';
+
+/**
+ * Assistant Chat Component
+ * Chat interface with text input and voice controls
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, Mic, MicOff, Volume2, VolumeX, Loader2, Sparkles, Briefcase, Code2, GraduationCap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAssistant } from '@/lib/assistant';
+import ChatMessage from './chat-message';
+import { cn } from '@/lib/utils';
+
+type ChatMode = 'text' | 'voice';
+
+interface AssistantChatProps {
+    className?: string;
+    mode?: ChatMode;
+}
+
+const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' }) => {
+    const {
+        messages,
+        state,
+        voiceEnabled,
+        voiceSupported,
+        sendMessage,
+        startVoiceInput,
+        startVoiceToText,
+        stopVoiceInput,
+        setVoiceEnabled,
+    } = useAssistant();
+
+    const [inputValue, setInputValue] = useState('');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    // Focus input when chat opens
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (inputValue.trim()) {
+            sendMessage(inputValue.trim());
+            setInputValue('');
+        }
+    };
+
+    // Voice toggle for voice mode (auto-send)
+    const handleVoiceToggle = () => {
+        if (state === 'listening') {
+            stopVoiceInput();
+        } else {
+            startVoiceInput();
+        }
+    };
+
+    // Voice-to-text for text mode (fills input box)
+    const handleTextModeVoice = () => {
+        if (state === 'listening') {
+            stopVoiceInput();
+        } else {
+            startVoiceToText((transcript) => {
+                setInputValue(transcript);
+            });
+        }
+    };
+
+    const isListening = state === 'listening';
+    const isSpeaking = state === 'speaking';
+    const isThinking = state === 'thinking';
+
+    // Suggestion chips for quick questions
+    const suggestions = [
+        { icon: Sparkles, label: 'Tell me about yourself', query: 'Tell me about yourself' },
+        { icon: Code2, label: 'What are your skills?', query: 'What are your skills and technologies?' },
+        { icon: Briefcase, label: 'Show me your projects', query: 'Show me your projects' },
+        { icon: GraduationCap, label: 'Your experience?', query: 'Tell me about your experience' },
+    ];
+
+    return (
+        <div className={cn('flex flex-col h-full', className)}>
+            {/* Voice Mode UI - Compact controls at bottom, 3D bot is main focus in parent */}
+            {mode === 'voice' ? (
+                <div className="p-4 border-t border-border bg-background/50 backdrop-blur-sm">
+                    {/* Compact Control Bar */}
+                    <div className="flex items-center justify-center gap-4">
+                        {/* Status Text */}
+                        <div className="text-sm text-muted-foreground min-w-[100px] text-right">
+                            {isListening ? (
+                                <span className="text-primary font-medium">Listening...</span>
+                            ) : isSpeaking ? (
+                                <span className="text-accent font-medium">Speaking...</span>
+                            ) : isThinking ? (
+                                <span className="text-amber-500 font-medium">Thinking...</span>
+                            ) : (
+                                <span>Ready</span>
+                            )}
+                        </div>
+
+                        {/* Mic Button */}
+                        <Button
+                            onClick={handleVoiceToggle}
+                            size="lg"
+                            disabled={!voiceSupported}
+                            className={cn(
+                                'rounded-full w-16 h-16 transition-all duration-300',
+                                isListening
+                                    ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/40 scale-110'
+                                    : 'bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30'
+                            )}
+                        >
+                            {isListening ? (
+                                <MicOff className="w-7 h-7" />
+                            ) : (
+                                <Mic className="w-7 h-7" />
+                            )}
+                        </Button>
+
+                        {/* Voice Toggle */}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setVoiceEnabled(!voiceEnabled)}
+                            className={cn(
+                                'text-xs gap-1.5 rounded-full min-w-[100px]',
+                                voiceEnabled ? 'text-primary' : 'text-muted-foreground'
+                            )}
+                        >
+                            {voiceEnabled ? (
+                                <>
+                                    <Volume2 className="w-4 h-4" />
+                                    Voice On
+                                </>
+                            ) : (
+                                <>
+                                    <VolumeX className="w-4 h-4" />
+                                    Voice Off
+                                </>
+                            )}
+                        </Button>
+                    </div>
+
+                    {/* Help text */}
+                    {!isListening && !isSpeaking && !isThinking && (
+                        <p className="text-[10px] text-muted-foreground text-center mt-3">
+                            {voiceSupported ? 'Tap the microphone to start talking' : 'Voice not supported in this browser'}
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <>
+                    {/* Text Mode: Messages Area */}
+                    <div className="flex-1 overflow-y-auto py-4 space-y-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                        {/* Welcome Screen when no messages */}
+                        {messages.length === 0 ? (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex flex-col items-center justify-center h-full px-4 py-8"
+                            >
+                                {/* Animated greeting */}
+                                <motion.div
+                                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4 border-2 border-primary/30"
+                                    animate={{ rotate: [0, 5, -5, 0] }}
+                                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                                >
+                                    <Sparkles className="w-8 h-8 text-primary" />
+                                </motion.div>
+
+                                <h3 className="text-lg font-bold mb-1">Hi there! 👋</h3>
+                                <p className="text-sm text-muted-foreground text-center mb-6 max-w-[250px]">
+                                    I&apos;m Hakkan&apos;s AI assistant. Ask me anything about his work!
+                                </p>
+
+                                {/* Suggestion chips */}
+                                <div className="w-full space-y-2">
+                                    <p className="text-xs text-muted-foreground text-center mb-3">Try asking:</p>
+                                    <div className="flex flex-wrap gap-2 justify-center">
+                                        {suggestions.map((suggestion, i) => (
+                                            <motion.button
+                                                key={i}
+                                                initial={{ opacity: 0, scale: 0.9 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                transition={{ delay: i * 0.1 }}
+                                                onClick={() => sendMessage(suggestion.query)}
+                                                className={cn(
+                                                    'flex items-center gap-1.5 px-3 py-2 rounded-full',
+                                                    'bg-muted/50 hover:bg-muted border border-border/50',
+                                                    'text-xs font-medium transition-all duration-200',
+                                                    'hover:scale-105 hover:border-primary/30'
+                                                )}
+                                            >
+                                                <suggestion.icon className="w-3.5 h-3.5 text-primary" />
+                                                <span>{suggestion.label}</span>
+                                            </motion.button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <AnimatePresence initial={false}>
+                                {messages.map((message, index) => (
+                                    <ChatMessage
+                                        key={message.id}
+                                        role={message.role}
+                                        content={message.content}
+                                        timestamp={message.timestamp}
+                                        isLatest={index === messages.length - 1}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        )}
+
+                        {/* Thinking indicator */}
+                        {isThinking && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="flex items-center gap-3 px-4 py-3"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border-2 border-accent">
+                                    <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                                </div>
+                                <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm text-muted-foreground">
+                                    <span className="animate-pulse">Thinking...</span>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* Listening indicator */}
+                        {isListening && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="flex items-center gap-3 px-4 py-3"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary animate-pulse">
+                                    <Mic className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="bg-primary/10 rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm text-primary border border-primary/30">
+                                    <span>Listening... Speak now</span>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Text Mode: Input Area */}
+                    <div className="border-t border-border bg-background/80 backdrop-blur-sm p-4">
+                        {/* Voice Controls Row */}
+                        {voiceSupported && (
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setVoiceEnabled(!voiceEnabled)}
+                                        className={cn(
+                                            'text-xs gap-1.5',
+                                            voiceEnabled ? 'text-primary' : 'text-muted-foreground'
+                                        )}
+                                    >
+                                        {voiceEnabled ? (
+                                            <>
+                                                <Volume2 className="w-3.5 h-3.5" />
+                                                Voice On
+                                            </>
+                                        ) : (
+                                            <>
+                                                <VolumeX className="w-3.5 h-3.5" />
+                                                Voice Off
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+
+                                {/* Speaking indicator */}
+                                {isSpeaking && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="flex items-center gap-2 text-xs text-accent"
+                                    >
+                                        <div className="flex gap-0.5">
+                                            {[...Array(4)].map((_, i) => (
+                                                <motion.div
+                                                    key={i}
+                                                    className="w-1 bg-accent rounded-full"
+                                                    animate={{
+                                                        height: ['8px', '16px', '8px'],
+                                                    }}
+                                                    transition={{
+                                                        duration: 0.5,
+                                                        repeat: Infinity,
+                                                        delay: i * 0.1,
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <span>Speaking...</span>
+                                    </motion.div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Input Form */}
+                        <form onSubmit={handleSubmit} className="flex gap-2">
+                            <Input
+                                ref={inputRef}
+                                type="text"
+                                placeholder={isListening ? 'Speak now... 🎤' : 'Ask me anything...'}
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                className="flex-1 border-2 border-foreground/20 focus:border-primary transition-colors"
+                            />
+
+                            {/* Microphone Button - Voice-to-Text */}
+                            {voiceSupported && (
+                                <Button
+                                    type="button"
+                                    variant={isListening ? 'default' : 'outline'}
+                                    size="icon"
+                                    onClick={handleTextModeVoice}
+                                    className={cn(
+                                        'border-2 transition-all',
+                                        isListening
+                                            ? 'bg-primary border-primary animate-pulse'
+                                            : 'border-foreground/20 hover:border-primary'
+                                    )}
+                                    title={isListening ? 'Stop listening' : 'Start voice input'}
+                                >
+                                    {isListening ? (
+                                        <MicOff className="w-4 h-4" />
+                                    ) : (
+                                        <Mic className="w-4 h-4" />
+                                    )}
+                                </Button>
+                            )}
+
+                            {/* Send Button */}
+                            <Button
+                                type="submit"
+                                size="icon"
+                                disabled={!inputValue.trim() || isListening}
+                                className="border-2 border-foreground/20"
+                            >
+                                <Send className="w-4 h-4" />
+                            </Button>
+                        </form>
+
+                        {/* Hint text */}
+                        <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                            Ask about projects, skills, experience, or say &quot;help&quot; for more options
+                        </p>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
+export default AssistantChat;

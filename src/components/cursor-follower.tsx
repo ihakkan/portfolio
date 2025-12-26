@@ -36,7 +36,7 @@ const CursorFollower = () => {
   const isScrolling = useRef(false);
   const lastTouchTime = useRef(0);
   const lastWebTime = useRef(0); // Throttle web creation
-  const audioRef = useRef<HTMLAudioElement | null>(null); // Reuse audio object
+
 
   useEffect(() => {
     // ... setup ...
@@ -319,22 +319,7 @@ const CursorFollower = () => {
       }
     };
 
-    const playWebSound = () => {
-      try {
-        // Reuse audio object to prevent memory buildup
-        if (!audioRef.current) {
-          audioRef.current = new Audio('/sounds/thwip.mp3');
-          audioRef.current.volume = 0.2;
-        }
-        // Reset and play
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(() => {
-          // Ignore autoplay errors
-        });
-      } catch (e) {
-        // Ignore audio errors
-      }
-    };
+
 
     const handleMouseDown = (e: MouseEvent) => {
       // Prevent double firing from touch events
@@ -348,11 +333,6 @@ const CursorFollower = () => {
       if (target.closest('.no-custom-cursor')) return;
 
       createWeb(mouse.current.x, mouse.current.y);
-
-      // Skip sound on elements with no-cursor-sound class (e.g., skill cards)
-      if (!target.closest('.no-cursor-sound')) {
-        playWebSound();
-      }
     };
 
     const handleMouseOver = (e: MouseEvent) => {
@@ -419,11 +399,6 @@ const CursorFollower = () => {
         // It was a tap, not a scroll
         if (canvasRef.current && canvasRef.current.style.opacity === '0') return;
         createWeb(mouse.current.x, mouse.current.y);
-
-        // Skip sound on elements with no-cursor-sound class (e.g., skill cards)
-        if (!target.closest('.no-cursor-sound')) {
-          playWebSound();
-        }
       }
     };
 
