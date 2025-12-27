@@ -217,6 +217,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
                                         content={message.content}
                                         timestamp={message.timestamp}
                                         isLatest={index === messages.length - 1}
+                                        messageType={message.messageType}
                                     />
                                 ))}
                             </AnimatePresence>

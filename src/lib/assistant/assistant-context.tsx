@@ -3,6 +3,7 @@
 /**
  * Assistant Context
  * React context for managing assistant state and interactions
+ * Includes conversation memory for contextual responses
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
@@ -15,7 +16,13 @@ import {
     cancelSpeaking,
     isVoiceSupported,
     preloadVoices,
+    VoiceError,
 } from './voice-service';
+import {
+    ConversationContext,
+    createEmptyContext,
+    updateContext,
+} from './smart-response-engine';
 
 // ============ Types ============
 
@@ -23,9 +30,10 @@ export type AssistantState = 'idle' | 'listening' | 'speaking' | 'thinking';
 
 export interface Message {
     id: string;
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: number;
+    messageType?: 'normal' | 'error' | 'info';
     action?: {
         type: 'navigate';
         target: string;
@@ -61,6 +69,9 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [voiceSupported, setVoiceSupported] = useState(false);
     const [hasShownWelcome, setHasShownWelcome] = useState(false);
 
+    // Conversation memory for contextual responses
+    const conversationContextRef = useRef<ConversationContext>(createEmptyContext());
+
     const interimTranscriptRef = useRef<string>('');
 
     // Check voice support on mount
@@ -88,6 +99,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             role: 'user',
             content,
             timestamp: Date.now(),
+            messageType: 'normal',
         };
         setMessages((prev) => [...prev, message]);
         return message;
@@ -99,6 +111,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             role: 'assistant',
             content: response.text,
             timestamp: Date.now(),
+            messageType: 'normal',
             action: response.action,
         };
         setMessages((prev) => [...prev, message]);
@@ -120,19 +133,32 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
 
         // Speak response if voice is enabled
+        // NOTE: Speaking state is set by onStart callback to sync animation with actual voice
         if (voiceEnabled && response.speakText) {
-            setState('speaking');
             speak(
                 response.speakText,
-                () => setState('idle'),
-                () => setState('speaking')
+                () => setState('idle'),        // onEnd - back to idle
+                () => setState('speaking')     // onStart - only now show speaking state
             );
         }
 
         return message;
     }, [voiceEnabled]);
 
-    // Process user input
+    // Add system/error message (for voice errors, etc.)
+    const addSystemMessage = useCallback((content: string, messageType: 'error' | 'info' = 'info') => {
+        const message: Message = {
+            id: generateId(),
+            role: 'system',
+            content,
+            timestamp: Date.now(),
+            messageType,
+        };
+        setMessages((prev) => [...prev, message]);
+        return message;
+    }, []);
+
+    // Process user input with conversation context
     const processInput = useCallback((text: string) => {
         const trimmedText = text.trim();
         if (!trimmedText) return;
@@ -143,15 +169,25 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Set thinking state briefly
         setState('thinking');
 
-        // Detect intent and generate response
+        // Detect intent and generate response with context
         setTimeout(() => {
             const intent = detectIntent(trimmedText);
-            const response = generateResponse(intent);
+
+            // Generate response with conversation context
+            const response = generateResponse(intent, conversationContextRef.current);
+
+            // Update conversation context for future responses
+            conversationContextRef.current = updateContext(
+                conversationContextRef.current,
+                intent,
+                intent.intent !== 'unknown' ? intent.intent : undefined
+            );
+
             addAssistantMessage(response);
             if (!voiceEnabled) {
                 setState('idle');
             }
-        }, 300); // Small delay for natural feel
+        }, 300 + Math.random() * 200); // Slightly variable delay for natural feel
     }, [addUserMessage, addAssistantMessage, voiceEnabled]);
 
     // Send text message
@@ -160,9 +196,34 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         processInput(text);
     }, [processInput]);
 
+    // Handle voice error with user-friendly message
+    const handleVoiceError = useCallback((errorMessage: string, voiceError?: VoiceError) => {
+        setState('idle');
+
+        if (voiceError && voiceError.userFriendlyMessage) {
+            // Show user-friendly error message
+            const errorContent = `${voiceError.userFriendlyMessage}\n\n💡 *${voiceError.suggestion}*`;
+            addSystemMessage(errorContent, 'error');
+        } else {
+            // Generic fallback message
+            addSystemMessage(
+                "Voice input ran into an issue! 🎤\n\n💡 *No worries – you can type your message using text mode instead.*",
+                'error'
+            );
+        }
+
+        console.error('Voice input error:', errorMessage);
+    }, [addSystemMessage]);
+
     // Voice input handlers
     const startVoiceInput = useCallback(() => {
-        if (!voiceSupported) return;
+        if (!voiceSupported) {
+            addSystemMessage(
+                "Voice isn't supported in this browser! 🔇\n\n💡 *Try using Chrome, Edge, or Safari for voice features, or use text mode.*",
+                'error'
+            );
+            return;
+        }
 
         cancelSpeaking();
         setState('listening');
@@ -176,21 +237,24 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     interimTranscriptRef.current = transcript;
                 }
             },
-            (error) => {
-                console.error('Voice input error:', error);
-                setState('idle');
-            },
+            handleVoiceError,
             () => {
                 setState('idle');
             }
         );
-    }, [voiceSupported, processInput]);
+    }, [voiceSupported, processInput, handleVoiceError, addSystemMessage]);
 
     // Start voice-to-text (fills input box instead of auto-sending)
     const transcriptCallbackRef = useRef<((text: string) => void) | null>(null);
 
     const startVoiceToText = useCallback((onTranscript: (text: string) => void) => {
-        if (!voiceSupported) return;
+        if (!voiceSupported) {
+            addSystemMessage(
+                "Voice isn't supported in this browser! 🔇\n\n💡 *Try using Chrome, Edge, or Safari for voice features.*",
+                'error'
+            );
+            return;
+        }
 
         cancelSpeaking();
         setState('listening');
@@ -207,15 +271,12 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     setState('idle');
                 }
             },
-            (error) => {
-                console.error('Voice-to-text error:', error);
-                setState('idle');
-            },
+            handleVoiceError,
             () => {
                 setState('idle');
             }
         );
-    }, [voiceSupported]);
+    }, [voiceSupported, handleVoiceError, addSystemMessage]);
 
     const stopVoiceInput = useCallback(() => {
         stopListening();
@@ -229,10 +290,11 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     }, [processInput]);
 
-    // Clear messages
+    // Clear messages and reset conversation context
     const clearMessages = useCallback(() => {
         setMessages([]);
         setHasShownWelcome(false);
+        conversationContextRef.current = createEmptyContext(); // Reset conversation memory
     }, []);
 
     const value: AssistantContextType = {
