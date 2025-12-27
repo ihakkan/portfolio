@@ -44,3 +44,9 @@ export { routeQuery, processQuery, type RouteResult } from './query-router';
 export { processUtilityQuery, type UtilityResponse } from './utility-engine';
 export { processCasualQuery, type CasualResponse } from './casual-engine';
 export { processWorldQuery, type WorldResponse } from './world-engine';
+export {
+    handlePersonalityQuery,
+    detectPersonalityCategory,
+    type PersonalityCategory,
+    type PersonalityResponse
+} from './personality-engine';

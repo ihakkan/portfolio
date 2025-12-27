@@ -9,6 +9,7 @@ import { classifyQuery, QueryCategory } from './query-classifier';
 import { processUtilityQuery } from './utility-engine';
 import { processCasualQuery } from './casual-engine';
 import { processWorldQuery } from './world-engine';
+import { handlePersonalityQuery } from './personality-engine';
 import { detectIntent, DetectedIntent } from './intent-detector';
 import { generateResponse, AssistantResponse } from './response-generator';
 import {
@@ -131,7 +132,23 @@ export const routeQuery = (
     let updatedContext = context;
     let category: QueryCategory;
 
-    // Step 1: Check for follow-up responses (yes/no to previous suggestion)
+    // Step 1: Check for personality queries (compliments, flirty, roasts)
+    const personalityResponse = handlePersonalityQuery(input);
+    if (personalityResponse) {
+        return {
+            response: {
+                text: personalityResponse.text,
+                speakText: personalityResponse.speakText,
+            },
+            category: 'casual',
+            updatedContext: {
+                ...context,
+                turnCount: context.turnCount + 1,
+            },
+        };
+    }
+
+    // Step 2: Check for follow-up responses (yes/no to previous suggestion)
     if (context.suggestedTopic && isAffirmativeResponse(input)) {
         // User said "yes" to a suggestion - fulfill it
         const topicIntent = TOPIC_TO_INTENT[context.suggestedTopic];
