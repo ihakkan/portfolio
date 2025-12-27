@@ -17,6 +17,12 @@ export {
     createEmptyContext,
     updateContext,
     optimizeForSpeech,
+    generateEnhancedSpeech,
+    isAffirmativeResponse,
+    isNegativeResponse,
+    isChoiceDelegation,
+    setSuggestedTopic,
+    clearSuggestedTopic,
 } from './smart-response-engine';
 export {
     ABOUT_KNOWLEDGE,
@@ -32,3 +38,9 @@ export {
     getSkillCategory,
 } from './knowledge-base';
 
+// New Hybrid AI Backend exports
+export { classifyQuery, type QueryCategory, type ClassifiedQuery } from './query-classifier';
+export { routeQuery, processQuery, type RouteResult } from './query-router';
+export { processUtilityQuery, type UtilityResponse } from './utility-engine';
+export { processCasualQuery, type CasualResponse } from './casual-engine';
+export { processWorldQuery, type WorldResponse } from './world-engine';

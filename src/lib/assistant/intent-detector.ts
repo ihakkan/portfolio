@@ -190,37 +190,106 @@ const intentPatterns: IntentPattern[] = [
         fuzzyKeywords: ['projcts', 'porfolio', 'projets'],
     },
 
-    // Project Detail (specific project)
+    // Project Detail (specific project) - only matches when an actual project name is found
     {
         intent: 'project_detail',
         patterns: [
-            /tell\s*(me)?\s*(more)?\s*about\s+(\w+)/i,
-            /what\s*is\s+(\w+)/i,
-            /explain\s+(\w+)/i,
-            /show\s*(me)?\s+(\w+)\s*project/i,
-            /details?\s*(about|on|for)\s+(\w+)/i,
-            /(\w+)\s*project\s*(details?|info)?/i,
+            // Specific project name patterns (these should only match with actual project names)
+            /tell\s*(me)?\s*(more)?\s*about\s+(mockhick|buildmycv|verifyai|confesscode|mememate|aluchat|reelxtract|mathomatic|jhatu)/i,
+            /what\s*is\s+(mockhick|buildmycv|verifyai|confesscode|mememate|aluchat|reelxtract|mathomatic|jhatu)/i,
+            /explain\s+(mockhick|buildmycv|verifyai|confesscode|mememate|aluchat|reelxtract|mathomatic|jhatu)/i,
+            /show\s*(me)?\s+(mockhick|buildmycv|verifyai|confesscode|mememate|aluchat|reelxtract|mathomatic|jhatu)\s*project/i,
+            /details?\s*(about|on|for)\s+(mockhick|buildmycv|verifyai|confesscode|mememate|aluchat|reelxtract|mathomatic|jhatu)/i,
+            /(mockhick|buildmycv|verifyai|confesscode|mememate|aluchat|reelxtract|mathomatic|jhatu)\s*project/i,
+            // Generic "tell me about [word]" - will be validated by extractParams
+            /tell\s*(me)?\s*(more)?\s*about\s+(?!his|your|the|hakkan|skills?|experience|education|projects?|certifications?|contact)(\w+)/i,
         ],
         keywords: PROJECT_NAMES,
         extractParams: (input: string): Record<string, string> => {
             const normalized = normalizeInput(input);
 
-            // Check for project name mentions
+            // Comprehensive project name mappings including typos, voice transcriptions, phonetic spellings
             const projectMappings: Record<string, string> = {
-                'mockhick': 'MockHick', 'mock hick': 'MockHick', 'maukhik': 'MockHick', 'interview app': 'MockHick',
-                'buildmycv': 'BuildMyCV', 'build my cv': 'BuildMyCV', 'cvbanao': 'BuildMyCV', 'resume builder': 'BuildMyCV', 'cv builder': 'BuildMyCV',
-                'verifyai': 'VerifyAI', 'verify ai': 'VerifyAI', 'deepfake': 'VerifyAI', 'fake news': 'VerifyAI',
-                'confesscode': 'ConfessCode', 'confess code': 'ConfessCode', 'confession': 'ConfessCode', 'anonymous': 'ConfessCode',
-                'mememate': 'MemeMate', 'meme mate': 'MemeMate', 'meme dating': 'MemeMate',
-                'aluchat': 'AluChat', 'alu chat': 'AluChat', 'chatbot': 'AluChat',
-                'reelxtract': 'ReelXtract', 'reel xtract': 'ReelXtract', 'reels downloader': 'ReelXtract', 'instagram': 'ReelXtract',
-                'mathomatic': 'Math-O-Matic', 'math o matic': 'Math-O-Matic', 'calculator': 'Math-O-Matic',
-                'hit the jhatu': 'Hit-The-Jhatu', 'jhatu': 'Hit-The-Jhatu', 'jhatu game': 'Hit-The-Jhatu', 'whack': 'Hit-The-Jhatu'
+                // MockHick - AI interview platform
+                'mockhick': 'MockHick', 'mock hick': 'MockHick', 'mock-hick': 'MockHick',
+                'maukhik': 'MockHick', 'moukhik': 'MockHick', 'mokhik': 'MockHick', 'mokhick': 'MockHick',
+                'mock interview': 'MockHick', 'interview app': 'MockHick', 'interview platform': 'MockHick',
+                'mok hik': 'MockHick', 'mock ik': 'MockHick', 'makehik': 'MockHick', 'make hick': 'MockHick',
+                'mokik': 'MockHick', 'mokhic': 'MockHick', 'mockhic': 'MockHick',
+
+                // BuildMyCV - Resume builder
+                'buildmycv': 'BuildMyCV', 'build my cv': 'BuildMyCV', 'build-my-cv': 'BuildMyCV',
+                'buildmyresume': 'BuildMyCV', 'build my resume': 'BuildMyCV',
+                'cvbanao': 'BuildMyCV', 'cv banao': 'BuildMyCV', 'cvbuilder': 'BuildMyCV',
+                'resume builder': 'BuildMyCV', 'cv builder': 'BuildMyCV', 'cv maker': 'BuildMyCV',
+                'bild my cv': 'BuildMyCV', 'build cv': 'BuildMyCV', 'bildmycv': 'BuildMyCV',
+                'buildmayseevee': 'BuildMyCV', 'build mai cv': 'BuildMyCV',
+
+                // VerifyAI - Deepfake detector
+                'verifyai': 'VerifyAI', 'verify ai': 'VerifyAI', 'verify-ai': 'VerifyAI',
+                'verificy': 'VerifyAI', 'verifiai': 'VerifyAI', 'verify eye': 'VerifyAI',
+                'deepfake': 'VerifyAI', 'deepfake detector': 'VerifyAI', 'fake detector': 'VerifyAI',
+                'fake news': 'VerifyAI', 'ai detector': 'VerifyAI', 'fakenews detector': 'VerifyAI',
+                'varify ai': 'VerifyAI', 'verifyi': 'VerifyAI',
+
+                // ConfessCode - Anonymous confession platform
+                'confesscode': 'ConfessCode', 'confess code': 'ConfessCode', 'confess-code': 'ConfessCode',
+                'confession': 'ConfessCode', 'confession app': 'ConfessCode', 'confessions': 'ConfessCode',
+                'anonymous confession': 'ConfessCode', 'confes code': 'ConfessCode',
+                'konfess': 'ConfessCode', 'confescode': 'ConfessCode', 'confess': 'ConfessCode',
+
+                // MemeMate - Meme-based dating app
+                'mememate': 'MemeMate', 'meme mate': 'MemeMate', 'meme-mate': 'MemeMate',
+                'meme dating': 'MemeMate', 'meme app': 'MemeMate', 'dating app': 'MemeMate',
+                'meemmate': 'MemeMate', 'meemmet': 'MemeMate', 'meme match': 'MemeMate',
+                'memmate': 'MemeMate', 'mememet': 'MemeMate',
+
+                // AluChat - AI chatbot with personalities
+                'aluchat': 'AluChat', 'alu chat': 'AluChat', 'alu-chat': 'AluChat',
+                'chatbot': 'AluChat', 'ai chatbot': 'AluChat', 'alu': 'AluChat',
+                'aloo chat': 'AluChat', 'aaluchat': 'AluChat', 'aloocat': 'AluChat',
+
+                // ReelXtract - Instagram Reels downloader
+                'reelxtract': 'ReelXtract', 'reel xtract': 'ReelXtract', 'reel-xtract': 'ReelXtract',
+                'reelextract': 'ReelXtract', 'reel extract': 'ReelXtract',
+                'reels downloader': 'ReelXtract', 'instagram downloader': 'ReelXtract',
+                'reel download': 'ReelXtract', 'instagram reels': 'ReelXtract',
+                'realextract': 'ReelXtract', 'rilxtract': 'ReelXtract',
+
+                // Math-O-Matic - Scientific calculator
+                'mathomatic': 'Math-O-Matic', 'math o matic': 'Math-O-Matic', 'math-o-matic': 'Math-O-Matic',
+                'calculator': 'Math-O-Matic', 'scientific calculator': 'Math-O-Matic',
+                'math calculator': 'Math-O-Matic', 'mathamatic': 'Math-O-Matic',
+                'mathematic': 'Math-O-Matic', 'mathomatic calculator': 'Math-O-Matic',
+
+                // Hit-The-Jhatu - Whack-a-mole game
+                'hit the jhatu': 'Hit-The-Jhatu', 'hitthejhatu': 'Hit-The-Jhatu', 'hit-the-jhatu': 'Hit-The-Jhatu',
+                'jhatu': 'Hit-The-Jhatu', 'jhatu game': 'Hit-The-Jhatu', 'whack game': 'Hit-The-Jhatu',
+                'whack a mole': 'Hit-The-Jhatu', 'jaatu': 'Hit-The-Jhatu', 'jatu': 'Hit-The-Jhatu',
+                'hit jhatu': 'Hit-The-Jhatu', 'hittejhatu': 'Hit-The-Jhatu',
             };
 
             for (const [key, value] of Object.entries(projectMappings)) {
                 if (normalized.includes(key)) {
                     return { projectName: value };
+                }
+            }
+
+            // Fuzzy matching fallback using Levenshtein distance for close matches
+            const projectNames = ['mockhick', 'buildmycv', 'verifyai', 'confesscode', 'mememate', 'aluchat', 'reelxtract', 'mathomatic', 'jhatu'];
+            const words = normalized.split(/\s+/);
+
+            for (const word of words) {
+                if (word.length < 4) continue; // Skip short words
+
+                for (const projectName of projectNames) {
+                    // Check if word is similar enough (allowing 2 character differences)
+                    if (levenshteinDistance(word, projectName) <= 2) {
+                        const mapping = Object.entries(projectMappings).find(([k]) => k === projectName);
+                        if (mapping) {
+                            return { projectName: mapping[1] };
+                        }
+                    }
                 }
             }
 
@@ -479,9 +548,79 @@ const intentPatterns: IntentPattern[] = [
 
 // ============ Intent Detection ============
 
+// Priority check for project names - these should always be detected first
+const PROJECT_NAME_LOOKUP: Record<string, string> = {
+    // MockHick
+    'mockhick': 'MockHick', 'mock hick': 'MockHick', 'maukhik': 'MockHick', 'moukhik': 'MockHick',
+    'mokhik': 'MockHick', 'mokhick': 'MockHick', 'mock interview': 'MockHick',
+    // BuildMyCV
+    'buildmycv': 'BuildMyCV', 'build my cv': 'BuildMyCV', 'cvbanao': 'BuildMyCV',
+    'resume builder': 'BuildMyCV', 'cv builder': 'BuildMyCV', 'cv maker': 'BuildMyCV',
+    'build cv': 'BuildMyCV', 'buildmyresume': 'BuildMyCV',
+    // VerifyAI
+    'verifyai': 'VerifyAI', 'verify ai': 'VerifyAI', 'deepfake': 'VerifyAI',
+    'fake news': 'VerifyAI', 'deepfake detector': 'VerifyAI',
+    // ConfessCode
+    'confesscode': 'ConfessCode', 'confess code': 'ConfessCode', 'confession': 'ConfessCode',
+    // MemeMate
+    'mememate': 'MemeMate', 'meme mate': 'MemeMate', 'meme dating': 'MemeMate',
+    // AluChat
+    'aluchat': 'AluChat', 'alu chat': 'AluChat', 'alu': 'AluChat',
+    // ReelXtract
+    'reelxtract': 'ReelXtract', 'reel xtract': 'ReelXtract', 'reels downloader': 'ReelXtract',
+    // Math-O-Matic
+    'mathomatic': 'Math-O-Matic', 'math o matic': 'Math-O-Matic',
+    // Hit-The-Jhatu
+    'jhatu': 'Hit-The-Jhatu', 'hit the jhatu': 'Hit-The-Jhatu', 'jaatu': 'Hit-The-Jhatu',
+};
+
+const checkPriorityProjectName = (input: string): DetectedIntent | null => {
+    const normalized = normalizeInput(input);
+
+    // Direct match check
+    for (const [key, projectName] of Object.entries(PROJECT_NAME_LOOKUP)) {
+        if (normalized === key || normalized.includes(key)) {
+            return {
+                intent: 'project_detail',
+                confidence: 1.0,
+                params: { projectName },
+                originalInput: input,
+            };
+        }
+    }
+
+    // Fuzzy match for typos (allowing 2 character differences)
+    const projectBases = ['mockhick', 'buildmycv', 'verifyai', 'confesscode', 'mememate', 'aluchat', 'reelxtract', 'mathomatic', 'jhatu'];
+    const words = normalized.split(/\s+/).filter(w => w.length >= 4);
+
+    for (const word of words) {
+        for (const base of projectBases) {
+            if (levenshteinDistance(word, base) <= 2) {
+                const projectName = PROJECT_NAME_LOOKUP[base];
+                if (projectName) {
+                    return {
+                        intent: 'project_detail',
+                        confidence: 0.95,
+                        params: { projectName },
+                        originalInput: input,
+                    };
+                }
+            }
+        }
+    }
+
+    return null;
+};
+
 export const detectIntent = (input: string): DetectedIntent => {
     const normalizedInput = normalizeInput(input);
     const words = normalizedInput.split(' ').filter(w => w.length > 1);
+
+    // PRIORITY: Check for project names FIRST before any other detection
+    const projectMatch = checkPriorityProjectName(input);
+    if (projectMatch) {
+        return projectMatch;
+    }
 
     let bestMatch: DetectedIntent = {
         intent: 'unknown',

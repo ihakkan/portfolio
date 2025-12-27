@@ -10,6 +10,7 @@ import {
     ConversationContext,
     createEmptyContext,
     optimizeForSpeech,
+    generateEnhancedSpeech,
 } from './smart-response-engine';
 import {
     ABOUT_KNOWLEDGE,
@@ -418,7 +419,7 @@ export const generateResponse = (
             const text = buildAboutResponse(context);
             return {
                 text,
-                speakText: ABOUT_KNOWLEDGE.quickIntro,
+                speakText: generateEnhancedSpeech(ABOUT_KNOWLEDGE.quickIntro + " " + ABOUT_KNOWLEDGE.versions.casual, 'general'),
                 action: { type: 'navigate', target: 'about' },
             };
         }
@@ -427,16 +428,20 @@ export const generateResponse = (
             const text = buildAboutDetailResponse(context);
             return {
                 text,
-                speakText: optimizeForSpeech(ABOUT_KNOWLEDGE.detailedAbout.substring(0, 300)),
+                speakText: generateEnhancedSpeech(ABOUT_KNOWLEDGE.detailedAbout, 'general', { maxLength: 600 }),
                 action: { type: 'navigate', target: 'about' },
             };
         }
 
         case 'projects': {
             const text = buildProjectsListResponse(context);
+            const projectNames = PROJECTS_KNOWLEDGE.slice(0, 5).map(p => p.name).join(', ');
             return {
                 text,
-                speakText: `Hakkan has built ${PROJECTS_KNOWLEDGE.length} projects including MockHick, BuildMyCV, VerifyAI, and more. Want details on any specific one?`,
+                speakText: generateEnhancedSpeech(
+                    `Hakkan has built ${PROJECTS_KNOWLEDGE.length} impressive projects! Here are some highlights: ${projectNames}. Each project solves real problems using modern tech.`,
+                    'projects'
+                ),
                 action: { type: 'navigate', target: 'projects' },
             };
         }
@@ -447,25 +452,35 @@ export const generateResponse = (
                 const text = buildProjectDetailResponse(projectName, context);
                 if (text) {
                     const project = findProject(projectName);
+                    if (project) {
+                        const detailedSpeech = `${project.name} is ${project.shortDescription} ${project.whyBuilt} The tech stack includes ${project.techHighlights} Here's a fun fact: ${project.coolFact}`;
+                        return {
+                            text,
+                            speakText: generateEnhancedSpeech(detailedSpeech, 'projects', { maxLength: 600 }),
+                            action: { type: 'navigate', target: 'projects' },
+                        };
+                    }
                     return {
                         text,
-                        speakText: project ? `${project.name}: ${project.shortDescription}. ${project.coolFact}` : optimizeForSpeech(text),
+                        speakText: generateEnhancedSpeech(text, 'projects', { maxLength: 500 }),
                         action: { type: 'navigate', target: 'projects' },
                     };
                 }
             }
             return {
                 text: `I couldn't find that specific project. ${buildProjectsListResponse(context)}`,
-                speakText: `I couldn't find that project. Let me show you all ${PROJECTS_KNOWLEDGE.length} projects Hakkan has built.`,
+                speakText: `I couldn't find that project. Let me show you all ${PROJECTS_KNOWLEDGE.length} projects Hakkan has built. Which one would you like to hear about?`,
                 action: { type: 'navigate', target: 'projects' },
             };
         }
 
         case 'skills': {
             const text = buildSkillsResponse(context);
+            const { categories } = SKILLS_KNOWLEDGE;
+            const skillsSpeech = `Hakkan has a versatile skill set! On the frontend, he works with ${categories.frontend.skills.slice(0, 3).join(', ')}, and more. For backend, he uses ${categories.backend.skills.slice(0, 3).join(', ')}. He's also experienced with databases like ${categories.database.skills.slice(0, 3).join(', ')}, and has integrated AI tools like ${categories.aiTools.skills.join(', ')}.`;
             return {
                 text,
-                speakText: SKILLS_KNOWLEDGE.quickSummary,
+                speakText: generateEnhancedSpeech(skillsSpeech, 'skills'),
                 action: { type: 'navigate', target: 'skills' },
             };
         }
@@ -475,16 +490,20 @@ export const generateResponse = (
             const text = buildSkillCategoryResponse(category, context);
             return {
                 text,
-                speakText: optimizeForSpeech(text),
+                speakText: generateEnhancedSpeech(text, 'skills'),
                 action: { type: 'navigate', target: 'skills' },
             };
         }
 
         case 'experience': {
             const text = buildExperienceResponse(context);
+            const { positions } = EXPERIENCE_KNOWLEDGE;
+            const currentJob = positions.find(p => p.status === 'Current');
+            const previousJob = positions.find(p => p.status === 'Previous');
+            const expSpeech = `Hakkan has real-world experience through internships! He's currently working as a ${currentJob?.role} at ${currentJob?.company}, building e-commerce solutions. Previously, he was a ${previousJob?.role} at ${previousJob?.company}, working on an AI interview platform.`;
             return {
                 text,
-                speakText: EXPERIENCE_KNOWLEDGE.quickSummary,
+                speakText: generateEnhancedSpeech(expSpeech, 'experience'),
                 action: { type: 'navigate', target: 'experience' },
             };
         }
@@ -492,9 +511,21 @@ export const generateResponse = (
         case 'experience_detail': {
             const company = intent.params.company || 'UDRCRAFTS';
             const text = buildExperienceDetailResponse(company, context);
+            const position = EXPERIENCE_KNOWLEDGE.positions.find(p =>
+                p.company.toLowerCase().includes(company.toLowerCase())
+            );
+            if (position) {
+                const achievements = position.achievements.slice(0, 3).join('. ');
+                const detailSpeech = `At ${position.company}, Hakkan works as a ${position.role}. ${position.summary} Some key achievements include: ${achievements}. He uses technologies like ${position.techUsed.slice(0, 4).join(', ')}.`;
+                return {
+                    text,
+                    speakText: generateEnhancedSpeech(detailSpeech, 'experience', { maxLength: 600 }),
+                    action: { type: 'navigate', target: 'experience' },
+                };
+            }
             return {
                 text,
-                speakText: optimizeForSpeech(text.substring(0, 300)),
+                speakText: generateEnhancedSpeech(text, 'experience', { maxLength: 500 }),
                 action: { type: 'navigate', target: 'experience' },
             };
         }

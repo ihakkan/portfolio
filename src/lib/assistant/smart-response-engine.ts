@@ -11,6 +11,7 @@ import { IntentType, DetectedIntent } from './intent-detector';
 export interface ConversationContext {
     previousIntents: IntentType[];
     lastTopic: string | null;
+    suggestedTopic: string | null;  // What the bot suggested to talk about next
     mentionedProjects: string[];
     mentionedSkills: string[];
     turnCount: number;
@@ -22,11 +23,63 @@ export interface SmartResponseConfig {
     includeFollowUp: boolean;
 }
 
+// ============ Affirmative Response Detection ============
+
+// Patterns that indicate user is agreeing/confirming to a suggestion
+const AFFIRMATIVE_PATTERNS = [
+    /^(yes|yeah|yep|yup|sure|ok|okay|alright|absolutely|definitely|please|go ahead|tell me|show me|let's do it|sounds good|why not|of course)[\s!.?]*$/i,
+    /^(yes|yeah|sure|ok|okay)[,.]?\s*(please|do it|go on|continue|tell me)/i,
+    /^(i'd|i would)\s*(like|love)\s*(that|to)/i,
+    /^that\s*(sounds|would be)\s*(good|great|nice|awesome)/i,
+    /^let's\s*(do|hear|see|go)/i,
+];
+
+const NEGATIVE_PATTERNS = [
+    /^(no|nope|nah|not really|never mind|nevermind|skip|pass)[\s!.?]*$/i,
+    /^(no|nope)[,.]?\s*(thanks|thank you)/i,
+    /^i('m| am)?\s*(not interested|don't want)/i,
+];
+
+// Patterns for when user wants the bot to choose/recommend something
+const CHOICE_DELEGATION_PATTERNS = [
+    /^(you\s*)?(choose|pick|decide|select)(\s*(one|for me|something))?[\s!.?]*$/i,
+    /^(surprise\s*me|random(\s*one)?|anything|whatever)[\s!.?]*$/i,
+    /^(recommend|suggest)(\s*(one|something|any))?[\s!.?]*$/i,
+    /^(your\s*choice|dealer'?s?\s*choice)[\s!.?]*$/i,
+    /^(up\s*to\s*you|you\s*decide)[\s!.?]*$/i,
+    /^(any\s*(of\s*them|one)|whichever)[\s!.?]*$/i,
+];
+
+/**
+ * Check if user input is an affirmative response (yes, sure, okay, etc.)
+ */
+export const isAffirmativeResponse = (input: string): boolean => {
+    const normalized = input.toLowerCase().trim();
+    return AFFIRMATIVE_PATTERNS.some(pattern => pattern.test(normalized));
+};
+
+/**
+ * Check if user input is a negative response (no, nope, skip, etc.)
+ */
+export const isNegativeResponse = (input: string): boolean => {
+    const normalized = input.toLowerCase().trim();
+    return NEGATIVE_PATTERNS.some(pattern => pattern.test(normalized));
+};
+
+/**
+ * Check if user is delegating choice to the bot (you choose, pick one, surprise me)
+ */
+export const isChoiceDelegation = (input: string): boolean => {
+    const normalized = input.toLowerCase().trim();
+    return CHOICE_DELEGATION_PATTERNS.some(pattern => pattern.test(normalized));
+};
+
 // ============ Conversation Memory ============
 
 export const createEmptyContext = (): ConversationContext => ({
     previousIntents: [],
     lastTopic: null,
+    suggestedTopic: null,
     mentionedProjects: [],
     mentionedSkills: [],
     turnCount: 0,
@@ -42,6 +95,31 @@ export const updateContext = (
         previousIntents: [...context.previousIntents.slice(-5), intent.intent],
         lastTopic: topic || context.lastTopic,
         turnCount: context.turnCount + 1,
+    };
+};
+
+/**
+ * Update context with a suggested topic (what the bot offered to talk about)
+ */
+export const setSuggestedTopic = (
+    context: ConversationContext,
+    topic: string | null
+): ConversationContext => {
+    return {
+        ...context,
+        suggestedTopic: topic,
+    };
+};
+
+/**
+ * Clear the suggested topic (after it's been addressed or declined)
+ */
+export const clearSuggestedTopic = (
+    context: ConversationContext
+): ConversationContext => {
+    return {
+        ...context,
+        suggestedTopic: null,
     };
 };
 
@@ -198,6 +276,10 @@ export const buildFollowUpSuggestion = (currentTopic: IntentType, context: Conve
         project_detail: ["Want to know about other projects?", "Interested in the tech stack?"],
         navigation: ["What else can I help you find?", "Feel free to ask more questions!"],
         unknown: ["Try asking about projects, skills, or experience!", "I know a lot about Hakkan's portfolio!"],
+        about_detail: [],
+        skill_category: [],
+        experience_detail: [],
+        contact_specific: []
     };
 
     const topicSuggestions = suggestions[currentTopic] || suggestions.unknown;
@@ -287,9 +369,77 @@ export const optimizeForSpeech = (text: string): string => {
         .replace(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/g, (match) => {
             return match.replace('@', ' at ').replace(/\./g, ' dot ');
         })
+        // Clean up emojis for cleaner speech
+        .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
         // Normalize spaces
         .replace(/\s+/g, ' ')
         .trim();
+};
+
+// Voice follow-up prompts to make responses more interactive
+const VOICE_FOLLOW_UPS = {
+    projects: [
+        "Would you like to hear more about any of these projects?",
+        "Want me to tell you more about a specific project?",
+        "Which project sounds interesting to you?",
+    ],
+    skills: [
+        "Want to dive deeper into any of these skill areas?",
+        "Should I tell you more about a specific technology?",
+        "Any particular skill you'd like to know more about?",
+    ],
+    experience: [
+        "Would you like more details about any of these roles?",
+        "Want to hear more about what he did at either company?",
+        "Should I elaborate on his work at any of these places?",
+    ],
+    general: [
+        "Want to know more about anything in particular?",
+        "What else would you like to explore?",
+        "Feel free to ask for more details on anything!",
+    ],
+};
+
+const getVoiceFollowUp = (category: keyof typeof VOICE_FOLLOW_UPS = 'general'): string => {
+    const followUps = VOICE_FOLLOW_UPS[category] || VOICE_FOLLOW_UPS.general;
+    return followUps[Math.floor(Math.random() * followUps.length)];
+};
+
+/**
+ * Generate enhanced speech text with more details and follow-up prompts
+ * This makes voice responses more interactive and conversational
+ */
+export const generateEnhancedSpeech = (
+    content: string,
+    category: 'projects' | 'skills' | 'experience' | 'general' = 'general',
+    options?: { includeFollowUp?: boolean; maxLength?: number }
+): string => {
+    const { includeFollowUp = true, maxLength = 500 } = options || {};
+
+    // Clean the content for speech
+    let speech = optimizeForSpeech(content);
+
+    // Truncate if too long, but try to end at a sentence
+    if (speech.length > maxLength) {
+        const truncated = speech.substring(0, maxLength);
+        const lastSentence = truncated.lastIndexOf('. ');
+        if (lastSentence > maxLength * 0.6) {
+            speech = truncated.substring(0, lastSentence + 1);
+        } else {
+            speech = truncated + '...';
+        }
+    }
+
+    // Add a follow-up prompt for interactivity
+    if (includeFollowUp) {
+        speech = speech.trim();
+        if (!speech.endsWith('.') && !speech.endsWith('?') && !speech.endsWith('!')) {
+            speech += '.';
+        }
+        speech += ' ' + getVoiceFollowUp(category);
+    }
+
+    return speech;
 };
 
 // ============ Greeting with Time Context ============

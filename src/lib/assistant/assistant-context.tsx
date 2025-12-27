@@ -7,8 +7,8 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { detectIntent } from './intent-detector';
-import { generateResponse, getWelcomeMessage, AssistantResponse } from './response-generator';
+import { getWelcomeMessage, AssistantResponse } from './response-generator';
+import { routeQuery } from './query-router';
 import {
     startListening,
     stopListening,
@@ -21,7 +21,6 @@ import {
 import {
     ConversationContext,
     createEmptyContext,
-    updateContext,
 } from './smart-response-engine';
 
 // ============ Types ============
@@ -169,26 +168,20 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Set thinking state briefly
         setState('thinking');
 
-        // Detect intent and generate response with context
+        // Route query through the hybrid AI backend
         setTimeout(() => {
-            const intent = detectIntent(trimmedText);
+            const result = routeQuery(trimmedText, conversationContextRef.current);
 
-            // Generate response with conversation context
-            const response = generateResponse(intent, conversationContextRef.current);
+            // Update conversation context from router result
+            conversationContextRef.current = result.updatedContext;
 
-            // Update conversation context for future responses
-            conversationContextRef.current = updateContext(
-                conversationContextRef.current,
-                intent,
-                intent.intent !== 'unknown' ? intent.intent : undefined
-            );
-
-            addAssistantMessage(response);
+            addAssistantMessage(result.response);
             if (!voiceEnabled) {
                 setState('idle');
             }
         }, 300 + Math.random() * 200); // Slightly variable delay for natural feel
     }, [addUserMessage, addAssistantMessage, voiceEnabled]);
+
 
     // Send text message
     const sendMessage = useCallback((text: string) => {
