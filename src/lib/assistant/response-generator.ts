@@ -1,7 +1,7 @@
 /**
  * Response Generator
  * Generates intelligent, human-readable responses using the knowledge base
- * Provides varied, natural-sounding answers - never copies data word-for-word
+ * Handles all query types: general, specific, and detailed
  */
 
 import { DetectedIntent, IntentType } from './intent-detector';
@@ -20,7 +20,6 @@ import {
     CERTIFICATIONS_KNOWLEDGE,
     CONTACT_KNOWLEDGE,
     findProject,
-    getRandomAboutVersion,
 } from './knowledge-base';
 
 // ============ Response Types ============
@@ -72,21 +71,29 @@ const buildGreetingResponse = (context: ConversationContext): { text: string; sp
     return { text, speakText: optimizeForSpeech(text) };
 };
 
+// About - Quick intro
 const buildAboutResponse = (context: ConversationContext): string => {
     const intros = [
-        "Let me tell you about Hakkan! ",
-        "Here's the story of Hakkan: ",
-        "Glad you asked! ",
+        "Here's a quick intro! ",
+        "Let me introduce Hakkan: ",
+        "",
     ];
 
-    // Use different versions based on context
-    if (context.turnCount === 0) {
-        return getRandomItem(intros) + ABOUT_KNOWLEDGE.detailedAbout + "\n\n💡 *Want to know about his projects or skills?*";
-    } else {
-        return getRandomItem(intros) + getRandomAboutVersion();
-    }
+    return getRandomItem(intros) + ABOUT_KNOWLEDGE.quickIntro + "\n\n💡 *Want more details? Ask \"tell me more about Hakkan\"!*";
 };
 
+// About Detail - Full bio
+const buildAboutDetailResponse = (context: ConversationContext): string => {
+    const intros = [
+        "Let me tell you more about Hakkan! ",
+        "Here's the full story: ",
+        "Diving deeper into Hakkan's background: ",
+    ];
+
+    return getRandomItem(intros) + ABOUT_KNOWLEDGE.detailedAbout + "\n\n💡 *Want to know about his projects or skills?*";
+};
+
+// Projects List
 const buildProjectsListResponse = (context: ConversationContext): string => {
     const intros = [
         `Hakkan has built ${PROJECTS_KNOWLEDGE.length} impressive projects! Here's the lineup:`,
@@ -95,65 +102,82 @@ const buildProjectsListResponse = (context: ConversationContext): string => {
     ];
 
     const projectList = PROJECTS_KNOWLEDGE.map((p, i) => {
-        // Vary the format
-        const formats = [
-            `${i + 1}. **${p.name}** – ${p.shortDescription}`,
-            `${i + 1}. **${p.name}**: ${p.shortDescription}`,
-        ];
-        return getRandomItem(formats);
+        return `${i + 1}. **${p.name}** – ${p.shortDescription}`;
     }).join('\n');
 
     const outros = [
-        "\n\n💡 *Ask about any specific project to learn more! For example, \"Tell me about MockHick\"*",
-        "\n\n🔍 *Interested in any of these? Just ask for details!*",
-        "\n\n*Want the full story on any project? Just say the name!*",
+        "\n\n💡 *Ask about any specific project for full details! Just say the project name.*",
+        "\n\n🔍 *Interested in any of these? Ask \"tell me about [project name]\"!*",
     ];
 
     return `${getRandomItem(intros)}\n\n${projectList}${getRandomItem(outros)}`;
 };
 
+// Project Detail - Full project info
 const buildProjectDetailResponse = (projectName: string, context: ConversationContext): string | null => {
     const project = findProject(projectName);
     if (!project) return null;
 
     const intros = [
+        `Here's everything about ${project.name}! `,
         `${project.name} is one of Hakkan's standout projects! `,
-        `Ah, ${project.name}! Great choice. `,
-        `Let me tell you about ${project.name}: `,
+        `Let me tell you all about ${project.name}: `,
     ];
 
     const sections = [
         project.detailedDescription,
-        `\n\n**Why it was built:** ${project.whyBuilt}`,
-        `\n\n**Tech highlights:** ${project.techHighlights}`,
-        `\n\n🌟 **Cool fact:** ${project.coolFact}`,
+        `\n\n**🎯 Why it was built:**\n${project.whyBuilt}`,
+        `\n\n**🛠️ Tech Stack:**\n${project.techHighlights}`,
+        `\n\n🌟 **Fun fact:** ${project.coolFact}`,
+        `\n\n🔗 **Check it out:** [${project.name}](${project.liveUrl})`,
     ];
 
     return getRandomItem(intros) + sections.join('');
 };
 
+// Skills - All categories
 const buildSkillsResponse = (context: ConversationContext): string => {
     const { categories } = SKILLS_KNOWLEDGE;
 
     const intros = [
-        "Hakkan's got a solid tech arsenal! Here's the breakdown:",
-        "Let me walk you through Hakkan's technical skills:",
-        "Here's what Hakkan brings to the table:",
+        "Hakkan's got a solid tech arsenal! Here's the complete breakdown:",
+        "Let me walk you through Hakkan's full technical skill set:",
+        "Here's everything Hakkan brings to the table:",
     ];
 
     const skillsText = [
-        `\n\n**🎨 Frontend:** ${categories.frontend.skills.join(', ')}\n*${categories.frontend.highlight}*`,
-        `\n\n**⚙️ Backend:** ${categories.backend.skills.join(', ')}\n*${categories.backend.highlight}*`,
-        `\n\n**🗄️ Databases:** ${categories.database.skills.join(', ')}\n*${categories.database.highlight}*`,
-        `\n\n**🎯 UI/UX:** ${categories.uiux.skills.join(', ')}\n*${categories.uiux.highlight}*`,
-        `\n\n**🤖 AI Tools:** ${categories.aiTools.skills.join(', ')}\n*${categories.aiTools.highlight}*`,
-        `\n\n**🛠️ Dev Tools:** ${categories.tools.skills.slice(0, 6).join(', ')}`,
-        `\n\n**💡 Soft Skills:** ${categories.softSkills.skills.join(', ')}`,
+        `\n\n**🎨 Frontend:**\n${categories.frontend.skills.join(', ')}\n*${categories.frontend.highlight}*`,
+        `\n\n**⚙️ Backend:**\n${categories.backend.skills.join(', ')}\n*${categories.backend.highlight}*`,
+        `\n\n**🗄️ Databases:**\n${categories.database.skills.join(', ')}\n*${categories.database.highlight}*`,
+        `\n\n**🎯 UI/UX:**\n${categories.uiux.skills.join(', ')}\n*${categories.uiux.highlight}*`,
+        `\n\n**🤖 AI Tools:**\n${categories.aiTools.skills.join(', ')}\n*${categories.aiTools.highlight}*`,
+        `\n\n**🛠️ Dev Tools:**\n${categories.tools.skills.slice(0, 6).join(', ')}`,
+        `\n\n**💡 Soft Skills:**\n${categories.softSkills.skills.join(', ')}`,
     ].join('');
 
-    return `${getRandomItem(intros)}${skillsText}`;
+    return `${getRandomItem(intros)}${skillsText}\n\n💡 *Ask about a specific category like "frontend skills" or "AI tools"!*`;
 };
 
+// Skill Category - Specific category
+const buildSkillCategoryResponse = (category: string, context: ConversationContext): string => {
+    const { categories } = SKILLS_KNOWLEDGE;
+    const categoryKey = category.toLowerCase() as keyof typeof categories;
+    const cat = categories[categoryKey];
+
+    if (!cat) {
+        return buildSkillsResponse(context);
+    }
+
+    const intros = [
+        `Here's Hakkan's ${category} expertise:`,
+        `When it comes to ${category}:`,
+        `Let me tell you about his ${category} skills:`,
+    ];
+
+    return `${getRandomItem(intros)}\n\n**Skills:** ${cat.skills.join(', ')}\n\n${cat.summary}\n\n*${cat.highlight}*`;
+};
+
+// Experience - All positions
 const buildExperienceResponse = (context: ConversationContext): string => {
     const { positions, overview } = EXPERIENCE_KNOWLEDGE;
 
@@ -164,13 +188,37 @@ const buildExperienceResponse = (context: ConversationContext): string => {
     ];
 
     const expText = positions.map((pos) => {
-        const achievementHighlights = pos.achievements.slice(0, 3).map(a => `  • ${a}`).join('\n');
-        return `\n\n**${pos.role}** at ${pos.company} *(${pos.status === 'Current' ? '🟢 Current' : 'Previous'})*\n\n${pos.summary}\n\n*Key contributions:*\n${achievementHighlights}\n\n*Tech used:* ${pos.techUsed.slice(0, 5).join(', ')}`;
+        const achievementHighlights = pos.achievements.slice(0, 4).map(a => `  • ${a}`).join('\n');
+        return `\n\n**${pos.role}** at ${pos.company} *(${pos.status === 'Current' ? '🟢 Current' : '🔵 Previous'})*\n\n${pos.summary}\n\n*Key contributions:*\n${achievementHighlights}\n\n*Tech used:* ${pos.techUsed.join(', ')}`;
     }).join('\n\n---');
 
-    return `${getRandomItem(intros)}${expText}`;
+    return `${getRandomItem(intros)}${expText}\n\n💡 *Ask about a specific role for more details!*`;
 };
 
+// Experience Detail - Specific company
+const buildExperienceDetailResponse = (company: string, context: ConversationContext): string => {
+    const { positions } = EXPERIENCE_KNOWLEDGE;
+
+    const position = positions.find(p =>
+        p.company.toLowerCase().includes(company.toLowerCase()) ||
+        (company.toLowerCase() === 'aiking' && p.company.toLowerCase().includes('aiking'))
+    );
+
+    if (!position) {
+        return buildExperienceResponse(context);
+    }
+
+    const intros = [
+        `Here's the details about Hakkan's role at ${position.company}:`,
+        `Let me tell you about the ${position.role} position:`,
+    ];
+
+    const allAchievements = position.achievements.map(a => `• ${a}`).join('\n');
+
+    return `${getRandomItem(intros)}\n\n**${position.role}** at ${position.company}\n*Status: ${position.status === 'Current' ? '🟢 Currently working here' : '🔵 Completed'}*\n\n${position.summary}\n\n**All Achievements:**\n${allAchievements}\n\n**Technologies Used:**\n${position.techUsed.join(', ')}\n\n*${position.funFact}*`;
+};
+
+// Education
 const buildEducationResponse = (context: ConversationContext): string => {
     const { degrees } = EDUCATION_KNOWLEDGE;
 
@@ -181,12 +229,13 @@ const buildEducationResponse = (context: ConversationContext): string => {
     ];
 
     const eduText = degrees.map((edu) => {
-        return `\n\n**🎓 ${edu.degree}**\n${edu.institution}\n*${edu.period}* | *${edu.performance}*`;
+        return `\n\n**🎓 ${edu.degree}**\n${edu.institution}\n*${edu.period}* | *${edu.performance}*\n${edu.description}`;
     }).join('');
 
     return `${getRandomItem(intros)}${eduText}`;
 };
 
+// Certifications
 const buildCertificationsResponse = (context: ConversationContext): string => {
     const { certifications, overview } = CERTIFICATIONS_KNOWLEDGE;
 
@@ -197,12 +246,13 @@ const buildCertificationsResponse = (context: ConversationContext): string => {
     ];
 
     const certText = certifications.map((cert, i) => {
-        return `\n${i + 1}. **${cert.name}**\n   *Issued by:* ${cert.issuer}\n   *${cert.relevance}*`;
+        return `\n${i + 1}. **${cert.name}**\n   *Issued by:* ${cert.issuer}\n   ${cert.description}\n   *${cert.relevance}*`;
     }).join('\n');
 
     return `${getRandomItem(intros)}${certText}`;
 };
 
+// Contact - All channels
 const buildContactResponse = (context: ConversationContext): string => {
     const { channels, cta } = CONTACT_KNOWLEDGE;
 
@@ -220,24 +270,54 @@ const buildContactResponse = (context: ConversationContext): string => {
         `\n\n🔷 **Google Dev:** [${channels.googleDev.username}](${channels.googleDev.url})`,
     ].join('');
 
-    return `${getRandomItem(intros)}${contactText}\n\n✨ *${cta}*`;
+    return `${getRandomItem(intros)}${contactText}\n\n✨ *${cta}*\n\n💡 *Ask specifically like "what's his GitHub?" for quick info!*`;
 };
 
+// Contact Specific - Single channel
+const buildContactSpecificResponse = (method: string, context: ConversationContext): string => {
+    const { channels } = CONTACT_KNOWLEDGE;
+
+    switch (method) {
+        case 'email':
+            return `📧 **Hakkan's Email:** ${channels.email.value}\n\n${channels.email.description}\n\n*${channels.email.action}*`;
+        case 'phone':
+            return `📱 **Hakkan's Phone:** ${channels.phone.value}\n\n${channels.phone.description}\n\n*${channels.phone.action}*`;
+        case 'github':
+            return `💻 **Hakkan's GitHub:** [${channels.github.username}](${channels.github.url})\n\n${channels.github.description}\n\n*${channels.github.action}*`;
+        case 'linkedin':
+            return `💼 **Hakkan's LinkedIn:** [${channels.linkedin.username}](${channels.linkedin.url})\n\n${channels.linkedin.description}\n\n*${channels.linkedin.action}*`;
+        case 'googleDev':
+            return `🔷 **Hakkan's Google Dev:** [${channels.googleDev.username}](${channels.googleDev.url})\n\n${channels.googleDev.description}\n\n*${channels.googleDev.action}*`;
+        default:
+            return buildContactResponse(context);
+    }
+};
+
+// Help
 const buildHelpResponse = (context: ConversationContext): string => {
     if (context.turnCount > 3) {
         return `Quick reminder – I can help with:\n\n• **Projects** – See what Hakkan has built\n• **Skills** – Technical expertise\n• **Experience** – Work history\n• **Contact** – Get in touch\n\nJust ask naturally!`;
     }
 
     return `I'm here to help you explore Hakkan's portfolio! Here's what I know about:\n\n` +
-        `🚀 **Projects** – ${PROJECTS_KNOWLEDGE.length} impressive builds including MockHick, BuildMyCV, and more\n` +
-        `💻 **Skills** – Frontend, Backend, Databases, AI Integration\n` +
-        `💼 **Experience** – Real internship experience at tech companies\n` +
-        `🎓 **Education** – B.Tech CSE journey\n` +
-        `📜 **Certifications** – MERN, AWS AI/ML, Cybersecurity, and more\n` +
-        `📧 **Contact** – Email, GitHub, LinkedIn, and phone\n\n` +
-        `Just ask naturally! For example:\n• "What projects has Hakkan built?"\n• "Tell me about MockHick"\n• "What's his tech stack?"\n• "How can I contact him?"`;
+        `🚀 **Projects** – ${PROJECTS_KNOWLEDGE.length} impressive builds\n` +
+        `   _Examples: "show me projects", "tell me about MockHick"_\n\n` +
+        `💻 **Skills** – Full tech stack\n` +
+        `   _Examples: "what are his skills?", "frontend skills"_\n\n` +
+        `💼 **Experience** – Work history & internships\n` +
+        `   _Examples: "work experience", "tell me about UDRCrafts"_\n\n` +
+        `🎓 **Education** – Academic background\n` +
+        `   _Examples: "education", "what degree?"_\n\n` +
+        `📜 **Certifications** – Credentials & courses\n` +
+        `   _Examples: "certifications", "what courses?"_\n\n` +
+        `📧 **Contact** – Ways to connect\n` +
+        `   _Examples: "contact info", "what's his GitHub?"_\n\n` +
+        `👤 **About** – Who is Hakkan?\n` +
+        `   _Examples: "who is Hakkan?", "tell me more about him"_\n\n` +
+        `Just ask naturally – I understand many different ways of asking!`;
 };
 
+// Thanks
 const buildThanksResponse = (context: ConversationContext): string => {
     const responses = [
         "You're welcome! Happy to help. 😊",
@@ -256,6 +336,7 @@ const buildThanksResponse = (context: ConversationContext): string => {
     return getRandomItem(responses);
 };
 
+// Goodbye
 const buildGoodbyeResponse = (context: ConversationContext): string => {
     const responses = [
         "Goodbye! Thanks for visiting Hakkan's portfolio. 👋",
@@ -274,6 +355,7 @@ const buildGoodbyeResponse = (context: ConversationContext): string => {
     return getRandomItem(responses);
 };
 
+// Navigation
 const buildNavigationResponse = (section: string): string => {
     const responses = [
         `Taking you to the ${section} section now!`,
@@ -284,6 +366,7 @@ const buildNavigationResponse = (section: string): string => {
     return getRandomItem(responses);
 };
 
+// Smart Fallback
 const buildSmartFallback = (originalInput: string, context: ConversationContext): string => {
     const inputLower = originalInput.toLowerCase();
 
@@ -291,11 +374,11 @@ const buildSmartFallback = (originalInput: string, context: ConversationContext)
     const topicHints = [
         { keywords: ['work', 'job', 'career', 'company', 'intern'], suggestion: "Looks like you're asking about work. Try asking about Hakkan's **experience** or **internships**!" },
         { keywords: ['code', 'program', 'develop', 'build', 'make', 'create', 'app'], suggestion: "Sounds like you're interested in what Hakkan has built! Ask about his **projects**." },
-        { keywords: ['tech', 'framework', 'language', 'tool', 'know', 'use'], suggestion: "Want to know Hakkan's tech stack? Ask about his **skills**!" },
-        { keywords: ['study', 'degree', 'college', 'school', 'learn', 'university'], suggestion: "Curious about academics? Ask about Hakkan's **education**!" },
-        { keywords: ['hire', 'freelance', 'available', 'reach', 'email', 'call'], suggestion: "Want to get in touch? Ask for **contact** information!" },
+        { keywords: ['tech', 'framework', 'language', 'tool', 'know', 'use', 'stack', 'skill'], suggestion: "Want to know Hakkan's tech stack? Ask about his **skills**!" },
+        { keywords: ['study', 'degree', 'college', 'school', 'learn', 'university', 'academic'], suggestion: "Curious about academics? Ask about Hakkan's **education**!" },
+        { keywords: ['hire', 'freelance', 'available', 'reach', 'email', 'call', 'connect'], suggestion: "Want to get in touch? Ask for **contact** information!" },
         { keywords: ['certificate', 'course', 'training', 'certified'], suggestion: "Looking for credentials? Ask about **certifications**!" },
-        { keywords: ['who', 'about', 'hakkan', 'person'], suggestion: "Want to know about Hakkan? Just ask \"Who is Hakkan?\" or \"Tell me about Hakkan\"!" },
+        { keywords: ['who', 'about', 'hakkan', 'person', 'himself'], suggestion: "Want to know about Hakkan? Just ask \"Who is Hakkan?\" or \"Tell me more about him\"!" },
     ];
 
     for (const hint of topicHints) {
@@ -340,6 +423,15 @@ export const generateResponse = (
             };
         }
 
+        case 'about_detail': {
+            const text = buildAboutDetailResponse(context);
+            return {
+                text,
+                speakText: optimizeForSpeech(ABOUT_KNOWLEDGE.detailedAbout.substring(0, 300)),
+                action: { type: 'navigate', target: 'about' },
+            };
+        }
+
         case 'projects': {
             const text = buildProjectsListResponse(context);
             return {
@@ -378,11 +470,31 @@ export const generateResponse = (
             };
         }
 
+        case 'skill_category': {
+            const category = intent.params.category || 'frontend';
+            const text = buildSkillCategoryResponse(category, context);
+            return {
+                text,
+                speakText: optimizeForSpeech(text),
+                action: { type: 'navigate', target: 'skills' },
+            };
+        }
+
         case 'experience': {
             const text = buildExperienceResponse(context);
             return {
                 text,
                 speakText: EXPERIENCE_KNOWLEDGE.quickSummary,
+                action: { type: 'navigate', target: 'experience' },
+            };
+        }
+
+        case 'experience_detail': {
+            const company = intent.params.company || 'UDRCRAFTS';
+            const text = buildExperienceDetailResponse(company, context);
+            return {
+                text,
+                speakText: optimizeForSpeech(text.substring(0, 300)),
                 action: { type: 'navigate', target: 'experience' },
             };
         }
@@ -410,6 +522,16 @@ export const generateResponse = (
             return {
                 text,
                 speakText: CONTACT_KNOWLEDGE.quickSummary,
+                action: { type: 'navigate', target: 'contact' },
+            };
+        }
+
+        case 'contact_specific': {
+            const method = intent.params.method || 'email';
+            const text = buildContactSpecificResponse(method, context);
+            return {
+                text,
+                speakText: optimizeForSpeech(text),
                 action: { type: 'navigate', target: 'contact' },
             };
         }

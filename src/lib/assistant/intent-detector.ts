@@ -1,19 +1,23 @@
 /**
  * Intent Detection System
  * Advanced pattern-based intent detection with fuzzy matching
- * No external APIs - uses keyword matching, pattern recognition, and similarity scoring
+ * Supports specific queries (e.g., specific project, specific contact method)
  */
 
 export type IntentType =
     | 'greeting'
     | 'about'
+    | 'about_detail'
     | 'projects'
     | 'project_detail'
     | 'skills'
+    | 'skill_category'
     | 'experience'
+    | 'experience_detail'
     | 'education'
     | 'certifications'
     | 'contact'
+    | 'contact_specific'
     | 'navigation'
     | 'help'
     | 'thanks'
@@ -25,7 +29,7 @@ export interface DetectedIntent {
     confidence: number;
     params: Record<string, string>;
     originalInput: string;
-    suggestedTopics?: string[]; // For unknown intents, suggest close matches
+    suggestedTopics?: string[];
 }
 
 // ============ Input Normalization ============
@@ -34,8 +38,8 @@ export const normalizeInput = (input: string): string => {
     return input
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s]/g, ' ') // Remove punctuation
-        .replace(/\s+/g, ' '); // Normalize whitespace
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ');
 };
 
 // ============ Fuzzy Matching (Levenshtein Distance) ============
@@ -43,44 +47,30 @@ export const normalizeInput = (input: string): string => {
 const levenshteinDistance = (str1: string, str2: string): number => {
     const m = str1.length;
     const n = str2.length;
-
-    // Create matrix
     const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-
-    // Initialize first row and column
     for (let i = 0; i <= m; i++) dp[i][0] = i;
     for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-    // Fill the matrix
     for (let i = 1; i <= m; i++) {
         for (let j = 1; j <= n; j++) {
             if (str1[i - 1] === str2[j - 1]) {
                 dp[i][j] = dp[i - 1][j - 1];
             } else {
-                dp[i][j] = 1 + Math.min(
-                    dp[i - 1][j],     // deletion
-                    dp[i][j - 1],     // insertion
-                    dp[i - 1][j - 1]  // substitution
-                );
+                dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
             }
         }
     }
-
     return dp[m][n];
 };
 
 const getSimilarity = (str1: string, str2: string): number => {
     const maxLen = Math.max(str1.length, str2.length);
     if (maxLen === 0) return 1;
-    const distance = levenshteinDistance(str1.toLowerCase(), str2.toLowerCase());
-    return 1 - distance / maxLen;
+    return 1 - levenshteinDistance(str1.toLowerCase(), str2.toLowerCase()) / maxLen;
 };
 
-// Check if a word approximately matches any in a list
 const fuzzyMatchWord = (word: string, targets: string[], threshold = 0.7): { match: string | null; score: number } => {
     let bestMatch: string | null = null;
     let bestScore = 0;
-
     for (const target of targets) {
         const similarity = getSimilarity(word, target);
         if (similarity > bestScore && similarity >= threshold) {
@@ -88,9 +78,45 @@ const fuzzyMatchWord = (word: string, targets: string[], threshold = 0.7): { mat
             bestMatch = target;
         }
     }
-
     return { match: bestMatch, score: bestScore };
 };
+
+// ============ Project Names for Detection ============
+
+const PROJECT_NAMES = [
+    'mockhick', 'mock hick', 'maukhik',
+    'buildmycv', 'build my cv', 'cvbanao', 'resume builder',
+    'verifyai', 'verify ai', 'deepfake detector', 'fake news',
+    'confesscode', 'confess code', 'anonymous',
+    'mememate', 'meme mate', 'meme dating',
+    'aluchat', 'alu chat', 'chatbot',
+    'reelxtract', 'reel xtract', 'reels downloader', 'instagram downloader',
+    'mathomatic', 'math o matic', 'calculator',
+    'hit the jhatu', 'jhatu game', 'whack a mole'
+];
+
+// ============ Skill Categories for Detection ============
+
+const SKILL_CATEGORIES = [
+    'frontend', 'front end', 'front-end', 'ui',
+    'backend', 'back end', 'back-end', 'server',
+    'database', 'db', 'databases',
+    'uiux', 'ui/ux', 'design',
+    'tools', 'dev tools', 'development tools',
+    'ai', 'ai tools', 'artificial intelligence',
+    'programming', 'programming languages', 'languages',
+    'soft skills', 'softskills'
+];
+
+// ============ Contact Methods for Detection ============
+
+const CONTACT_METHODS = [
+    'email', 'mail', 'gmail',
+    'phone', 'call', 'mobile', 'number',
+    'github', 'git',
+    'linkedin', 'linked in',
+    'google', 'g.dev', 'google dev'
+];
 
 // ============ Intent Patterns ============
 
@@ -98,11 +124,12 @@ interface IntentPattern {
     intent: IntentType;
     patterns: RegExp[];
     keywords: string[];
-    fuzzyKeywords?: string[]; // Additional keywords for fuzzy matching
+    fuzzyKeywords?: string[];
     extractParams?: (input: string) => Record<string, string>;
 }
 
 const intentPatterns: IntentPattern[] = [
+    // Greeting
     {
         intent: 'greeting',
         patterns: [
@@ -114,35 +141,56 @@ const intentPatterns: IntentPattern[] = [
         keywords: ['hi', 'hello', 'hey', 'greetings', 'howdy'],
         fuzzyKeywords: ['helo', 'hallo', 'hii', 'helllo', 'heya'],
     },
+
+    // About (quick intro)
     {
         intent: 'about',
         patterns: [
-            /who\s*(are|is)\s*(you|hakkan)/i,
-            /tell\s*(me)?\s*about\s*(yourself|you|hakkan)/i,
-            /introduce\s*(yourself)?/i,
-            /what\s*(do|does)\s*(you|hakkan)\s*do/i,
-            /describe\s*(yourself|hakkan)/i,
-            /about\s*(you|hakkan|yourself)/i,
-            /who\s*is\s*this/i,
+            /^who\s*(is)?\s*(hakkan|he)/i,
+            /^tell\s*(me)?\s*about\s*(hakkan|yourself|you)/i,
+            /^introduce/i,
+            /^about\s*(hakkan|you|yourself)?$/i,
+            /who\s*are\s*you/i,
         ],
-        keywords: ['who', 'about', 'yourself', 'introduce', 'background', 'bio', 'profile'],
-        fuzzyKeywords: ['abut', 'abot', 'introduse', 'bakground'],
+        keywords: ['who', 'about', 'introduce', 'hakkan'],
+        fuzzyKeywords: ['abut', 'abot', 'hakan'],
     },
+
+    // About Detail (more info)
+    {
+        intent: 'about_detail',
+        patterns: [
+            /more\s*(about|info|details?|information)/i,
+            /tell\s*(me)?\s*more/i,
+            /what\s*(does|do)\s*(he|hakkan|you)\s*do/i,
+            /describe\s*(hakkan|yourself|him)/i,
+            /background/i,
+            /in\s*detail/i,
+            /elaborate/i,
+            /full\s*(bio|profile|story)/i,
+        ],
+        keywords: ['more', 'detail', 'details', 'elaborate', 'describe', 'background', 'full'],
+    },
+
+    // Projects (list all)
     {
         intent: 'projects',
         patterns: [
-            /what\s*(are|have)\s*(your|the)?\s*projects/i,
-            /show\s*(me)?\s*(your|the)?\s*projects/i,
-            /tell\s*(me)?\s*about\s*(your|the)?\s*projects/i,
-            /what\s*(have)?\s*(you|hakkan)\s*(built|created|made|worked\s*on)/i,
+            /what\s*(are|have)\s*(your|his|the)?\s*projects/i,
+            /show\s*(me)?\s*(your|his|the|all)?\s*projects/i,
+            /tell\s*(me)?\s*about\s*(your|his|the)?\s*projects/i,
+            /what\s*(have)?\s*(you|he|hakkan)\s*(built|created|made|worked\s*on)/i,
             /portfolio\s*(work|projects)?/i,
             /^projects?$/i,
-            /list\s*(your|the)?\s*projects/i,
+            /list\s*(your|his|the|all)?\s*projects/i,
+            /all\s*projects/i,
             /what\s*apps?/i,
         ],
         keywords: ['projects', 'portfolio', 'built', 'created', 'work', 'apps', 'applications', 'websites', 'builds'],
-        fuzzyKeywords: ['projcts', 'porfolio', 'aplication', 'projets'],
+        fuzzyKeywords: ['projcts', 'porfolio', 'projets'],
     },
+
+    // Project Detail (specific project)
     {
         intent: 'project_detail',
         patterns: [
@@ -151,104 +199,216 @@ const intentPatterns: IntentPattern[] = [
             /explain\s+(\w+)/i,
             /show\s*(me)?\s+(\w+)\s*project/i,
             /details?\s*(about|on|for)\s+(\w+)/i,
+            /(\w+)\s*project\s*(details?|info)?/i,
         ],
-        keywords: [],
+        keywords: PROJECT_NAMES,
         extractParams: (input: string): Record<string, string> => {
-            const projectNames = ['mockhick', 'buildmycv', 'verifyai', 'confesscode', 'mememate', 'aluchat', 'reelxtract', 'math-o-matic', 'hit-the-jhatu'];
             const normalized = normalizeInput(input);
 
-            // Exact match first
-            for (const name of projectNames) {
-                if (normalized.includes(name.toLowerCase())) {
-                    return { projectName: name };
+            // Check for project name mentions
+            const projectMappings: Record<string, string> = {
+                'mockhick': 'MockHick', 'mock hick': 'MockHick', 'maukhik': 'MockHick', 'interview app': 'MockHick',
+                'buildmycv': 'BuildMyCV', 'build my cv': 'BuildMyCV', 'cvbanao': 'BuildMyCV', 'resume builder': 'BuildMyCV', 'cv builder': 'BuildMyCV',
+                'verifyai': 'VerifyAI', 'verify ai': 'VerifyAI', 'deepfake': 'VerifyAI', 'fake news': 'VerifyAI',
+                'confesscode': 'ConfessCode', 'confess code': 'ConfessCode', 'confession': 'ConfessCode', 'anonymous': 'ConfessCode',
+                'mememate': 'MemeMate', 'meme mate': 'MemeMate', 'meme dating': 'MemeMate',
+                'aluchat': 'AluChat', 'alu chat': 'AluChat', 'chatbot': 'AluChat',
+                'reelxtract': 'ReelXtract', 'reel xtract': 'ReelXtract', 'reels downloader': 'ReelXtract', 'instagram': 'ReelXtract',
+                'mathomatic': 'Math-O-Matic', 'math o matic': 'Math-O-Matic', 'calculator': 'Math-O-Matic',
+                'hit the jhatu': 'Hit-The-Jhatu', 'jhatu': 'Hit-The-Jhatu', 'jhatu game': 'Hit-The-Jhatu', 'whack': 'Hit-The-Jhatu'
+            };
+
+            for (const [key, value] of Object.entries(projectMappings)) {
+                if (normalized.includes(key)) {
+                    return { projectName: value };
                 }
             }
 
-            // Fuzzy match for project names
-            const words = normalized.split(' ');
-            for (const word of words) {
-                const { match, score } = fuzzyMatchWord(word, projectNames, 0.65);
-                if (match) {
-                    return { projectName: match };
-                }
-            }
-
-            return {} as Record<string, string>;
+            return {};
         },
     },
+
+    // Skills (general)
     {
         intent: 'skills',
         patterns: [
-            /what\s*(are|is)\s*(your|the)?\s*skills/i,
-            /what\s*technologies\s*(do\s*you\s*(know|use))?/i,
-            /what\s*can\s*(you|hakkan)\s*do/i,
+            /what\s*(are|is)\s*(your|his|the|hakkan'?s?)?\s*(skills?|technologies|tech)/i,
+            /tell\s*(me)?\s*(about)?\s*(your|his)?\s*skills/i,
             /tech\s*stack/i,
-            /programming\s*languages/i,
-            /what\s*(do\s*you|tools)\s*(use|know)/i,
+            /skill\s*set/i,
+            /what\s*(technologies|tech)\s*(do|does)\s*(you|he|hakkan)\s*(know|use)/i,
             /^skills?$/i,
-            /technical\s*(skills|abilities|expertise)/i,
+            /technical\s*(skills?|abilities|expertise)/i,
+            /what\s*can\s*(you|he|hakkan)\s*do/i,
+            /programming\s*languages?/i,
+            /what\s*(do\s*you|does\s*he|tools)\s*(use|know)/i,
         ],
-        keywords: ['skills', 'technologies', 'tech', 'stack', 'programming', 'languages', 'tools', 'expertise', 'frontend', 'backend', 'database'],
-        fuzzyKeywords: ['skils', 'tecnologies', 'programing', 'techstack'],
+        keywords: ['skills', 'skill', 'technologies', 'tech', 'stack', 'programming', 'languages', 'tools', 'expertise', 'skillset'],
+        fuzzyKeywords: ['skils', 'tecnologies', 'programing', 'techstack', 'skilset'],
     },
+
+    // Skill Category (specific category)
+    {
+        intent: 'skill_category',
+        patterns: [
+            /frontend\s*(skills?|tech|technologies)?/i,
+            /backend\s*(skills?|tech|technologies)?/i,
+            /database\s*(skills?|tech|knowledge)?/i,
+            /(ui|ux|ui\/ux|design)\s*(skills?)?/i,
+            /what\s*(frontend|backend|database|ai)\s*(tools?|tech)?/i,
+            /soft\s*skills?/i,
+        ],
+        keywords: SKILL_CATEGORIES,
+        extractParams: (input: string): Record<string, string> => {
+            const normalized = normalizeInput(input);
+            const categoryMappings: Record<string, string> = {
+                'frontend': 'frontend', 'front end': 'frontend', 'front-end': 'frontend', 'ui': 'frontend',
+                'backend': 'backend', 'back end': 'backend', 'back-end': 'backend', 'server': 'backend',
+                'database': 'database', 'db': 'database', 'databases': 'database',
+                'uiux': 'uiux', 'ui/ux': 'uiux', 'design': 'uiux', 'ux': 'uiux',
+                'tools': 'tools', 'dev tools': 'tools',
+                'ai': 'aiTools', 'ai tools': 'aiTools', 'artificial intelligence': 'aiTools',
+                'programming': 'programming', 'languages': 'programming',
+                'soft skills': 'softSkills', 'soft': 'softSkills'
+            };
+            for (const [key, value] of Object.entries(categoryMappings)) {
+                if (normalized.includes(key)) {
+                    return { category: value };
+                }
+            }
+            return {};
+        },
+    },
+
+    // Experience (general)
     {
         intent: 'experience',
         patterns: [
-            /what\s*(is|about)\s*(your|the)?\s*experience/i,
-            /where\s*(have|did)\s*(you|hakkan)\s*work(ed)?/i,
+            /what\s*(is|about)\s*(your|his|the|hakkan'?s?)?\s*experience/i,
+            /tell\s*(me)?\s*(about)?\s*(your|his)?\s*experience/i,
+            /where\s*(have|did|does)\s*(you|he|hakkan)\s*work(ed)?/i,
             /work\s*history/i,
-            /internship/i,
+            /internship(s)?/i,
             /professional\s*experience/i,
-            /job\s*experience/i,
+            /job\s*(experience|history)/i,
             /previous\s*(jobs?|work|companies)/i,
             /^experience$/i,
+            /career/i,
         ],
-        keywords: ['experience', 'work', 'job', 'internship', 'career', 'professional', 'employment', 'company', 'companies'],
+        keywords: ['experience', 'work', 'job', 'internship', 'internships', 'career', 'professional', 'employment', 'company', 'companies'],
         fuzzyKeywords: ['experiance', 'experince', 'interneship', 'carreer'],
     },
+
+    // Experience Detail (specific company or role)
+    {
+        intent: 'experience_detail',
+        patterns: [
+            /udrcrafts?/i,
+            /aiking/i,
+            /ai\s*king/i,
+            /current\s*(job|work|internship|role)/i,
+            /previous\s*(job|work|internship|role)/i,
+            /first\s*(job|internship)/i,
+        ],
+        keywords: ['udrcrafts', 'aiking', 'current', 'previous'],
+        extractParams: (input: string): Record<string, string> => {
+            const normalized = normalizeInput(input);
+            if (normalized.includes('udrcrafts') || normalized.includes('current')) {
+                return { company: 'UDRCRAFTS' };
+            }
+            if (normalized.includes('aiking') || normalized.includes('ai king') || normalized.includes('previous')) {
+                return { company: 'AIKing' };
+            }
+            return {};
+        },
+    },
+
+    // Education
     {
         intent: 'education',
         patterns: [
-            /what\s*(is|about)\s*(your|the)?\s*education/i,
-            /where\s*did\s*(you|hakkan)\s*study/i,
+            /what\s*(is|about)\s*(your|his|the|hakkan'?s?)?\s*education/i,
+            /tell\s*(me)?\s*(about)?\s*(your|his)?\s*education/i,
+            /where\s*did\s*(you|he|hakkan)\s*study/i,
             /what\s*degree/i,
             /college|university/i,
             /educational\s*background/i,
-            /qualifications/i,
+            /qualifications?/i,
             /^education$/i,
-            /academic\s*(background|history)/i,
+            /academic/i,
+            /cgpa|gpa|percentage/i,
+            /btech|b\.?tech/i,
         ],
-        keywords: ['education', 'degree', 'college', 'university', 'study', 'school', 'qualifications', 'academic', 'graduation'],
+        keywords: ['education', 'degree', 'college', 'university', 'study', 'school', 'qualifications', 'academic', 'graduation', 'btech'],
         fuzzyKeywords: ['educaton', 'colege', 'univeristy', 'degre'],
     },
+
+    // Certifications
     {
         intent: 'certifications',
         patterns: [
-            /what\s*(are|about)\s*(your|the)?\s*certifications/i,
-            /certificates/i,
-            /what\s*courses/i,
+            /what\s*(are|about)\s*(your|his|the|hakkan'?s?)?\s*certifications?/i,
+            /certificates?/i,
+            /what\s*courses?/i,
             /training/i,
             /^certifications?$/i,
-            /credentials/i,
+            /credentials?/i,
+            /aws|palo\s*alto|blue\s*prism|zscaler|mern/i,
         ],
-        keywords: ['certifications', 'certificates', 'courses', 'training', 'credentials', 'certified'],
+        keywords: ['certifications', 'certification', 'certificates', 'certificate', 'courses', 'training', 'credentials', 'certified'],
         fuzzyKeywords: ['certifcations', 'certificats', 'cources'],
     },
+
+    // Contact (general)
     {
         intent: 'contact',
         patterns: [
-            /how\s*(can|do)\s*(i|we)?\s*contact\s*(you|hakkan)?/i,
-            /how\s*(can|to)\s*reach\s*(you|hakkan)?/i,
-            /what\s*(is|are)\s*(your|the)?\s*(email|phone|contact)/i,
+            /how\s*(can|do|to)\s*(i|we)?\s*contact\s*(you|him|hakkan)?/i,
+            /how\s*(can|to)\s*reach\s*(you|him|hakkan)?/i,
+            /contact\s*(info|information|details)?/i,
             /get\s*in\s*touch/i,
-            /contact\s*(info|information|details)/i,
             /^contact$/i,
-            /hire\s*(you|hakkan)/i,
+            /hire\s*(you|him|hakkan)/i,
             /reach\s*out/i,
+            /connect\s*with/i,
         ],
-        keywords: ['contact', 'email', 'phone', 'reach', 'connect', 'linkedin', 'github', 'hire', 'message'],
-        fuzzyKeywords: ['contct', 'emal', 'linkdin', 'gethub'],
+        keywords: ['contact', 'reach', 'connect', 'hire', 'touch'],
     },
+
+    // Contact Specific (specific method)
+    {
+        intent: 'contact_specific',
+        patterns: [
+            /what\s*(is|are)?\s*(your|his|hakkan'?s?)?\s*email/i,
+            /what\s*(is|are)?\s*(your|his|hakkan'?s?)?\s*(phone|number|mobile)/i,
+            /what\s*(is|are)?\s*(your|his|hakkan'?s?)?\s*github/i,
+            /what\s*(is|are)?\s*(your|his|hakkan'?s?)?\s*linkedin/i,
+            /github\s*(profile|link|url|account)/i,
+            /linkedin\s*(profile|link|url|account)/i,
+            /email\s*(address|id)?/i,
+            /phone\s*number/i,
+            /call\s*(you|him|hakkan)/i,
+        ],
+        keywords: CONTACT_METHODS,
+        extractParams: (input: string): Record<string, string> => {
+            const normalized = normalizeInput(input);
+            const methodMappings: Record<string, string> = {
+                'email': 'email', 'mail': 'email', 'gmail': 'email',
+                'phone': 'phone', 'call': 'phone', 'mobile': 'phone', 'number': 'phone',
+                'github': 'github', 'git': 'github',
+                'linkedin': 'linkedin', 'linked in': 'linkedin',
+                'google': 'googleDev', 'g dev': 'googleDev', 'gdev': 'googleDev'
+            };
+            for (const [key, value] of Object.entries(methodMappings)) {
+                if (normalized.includes(key)) {
+                    return { method: value };
+                }
+            }
+            return {};
+        },
+    },
+
+    // Navigation
     {
         intent: 'navigation',
         patterns: [
@@ -263,26 +423,16 @@ const intentPatterns: IntentPattern[] = [
         extractParams: (input: string): Record<string, string> => {
             const sections = ['home', 'about', 'experience', 'projects', 'skills', 'education', 'certifications', 'contact'];
             const normalized = normalizeInput(input);
-
-            // Exact match
             for (const section of sections) {
                 if (normalized.includes(section)) {
                     return { section };
                 }
             }
-
-            // Fuzzy match
-            const words = normalized.split(' ');
-            for (const word of words) {
-                const { match } = fuzzyMatchWord(word, sections, 0.7);
-                if (match) {
-                    return { section: match };
-                }
-            }
-
-            return {} as Record<string, string>;
+            return {};
         },
     },
+
+    // Help
     {
         intent: 'help',
         patterns: [
@@ -294,9 +444,11 @@ const intentPatterns: IntentPattern[] = [
             /guide\s*me/i,
             /what\s*should\s*i\s*ask/i,
         ],
-        keywords: ['help', 'commands', 'options', 'guide', 'assist', 'how', 'what can'],
+        keywords: ['help', 'commands', 'options', 'guide', 'assist'],
         fuzzyKeywords: ['halp', 'hlep'],
     },
+
+    // Thanks
     {
         intent: 'thanks',
         patterns: [
@@ -308,6 +460,8 @@ const intentPatterns: IntentPattern[] = [
         ],
         keywords: ['thanks', 'thank', 'appreciate', 'grateful', 'thx', 'ty'],
     },
+
+    // Goodbye
     {
         intent: 'goodbye',
         patterns: [
@@ -353,20 +507,19 @@ export const detectIntent = (input: string): DetectedIntent => {
 
         // Check exact keywords (medium-high confidence)
         const matchedKeywords = pattern.keywords.filter((kw) =>
-            words.some((word) => word === kw || word.includes(kw) || kw.includes(word))
+            words.some((word) => word === kw || normalizedInput.includes(kw))
         );
         if (matchedKeywords.length > 0) {
             const keywordConfidence = 0.6 + (matchedKeywords.length * 0.1);
             confidence = Math.max(confidence, Math.min(keywordConfidence, 0.85));
         }
 
-        // Check fuzzy keywords (lower confidence but better fallback)
+        // Check fuzzy keywords (lower confidence)
         if (pattern.fuzzyKeywords && confidence < 0.5) {
             for (const word of words) {
                 const { match, score } = fuzzyMatchWord(word, pattern.fuzzyKeywords, 0.65);
                 if (match) {
-                    const fuzzyConfidence = 0.4 + (score * 0.3);
-                    confidence = Math.max(confidence, fuzzyConfidence);
+                    confidence = Math.max(confidence, 0.4 + (score * 0.3));
                 }
             }
         }
@@ -395,7 +548,7 @@ export const detectIntent = (input: string): DetectedIntent => {
         }
     }
 
-    // For low-confidence or unknown matches, add suggestions
+    // For low-confidence matches, add suggestions
     if (bestMatch.confidence < 0.5) {
         const topSuggestions = potentialTopics
             .sort((a, b) => b.score - a.score)
@@ -403,13 +556,11 @@ export const detectIntent = (input: string): DetectedIntent => {
             .map(t => t.topic);
 
         if (topSuggestions.length === 0) {
-            // Default suggestions if nothing matched
             topSuggestions.push('projects', 'skills', 'experience');
         }
 
         bestMatch.suggestedTopics = topSuggestions;
 
-        // If confidence is too low, mark as unknown
         if (bestMatch.confidence < 0.4) {
             bestMatch.intent = 'unknown';
         }
@@ -431,12 +582,9 @@ export const isQuestion = (input: string): boolean => {
     return questionWords.some((w) => normalized.startsWith(w)) || input.includes('?');
 };
 
-// ============ Spell-check Suggestions ============
-
 export const getSuggestions = (input: string): string[] => {
     const normalizedInput = normalizeInput(input);
     const words = normalizedInput.split(' ');
-
     const allKeywords = intentPatterns.flatMap(p => [...p.keywords, ...(p.fuzzyKeywords || [])]);
     const suggestions: string[] = [];
 
