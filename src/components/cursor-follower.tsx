@@ -328,9 +328,9 @@ const CursorFollower = () => {
       // Don't create effects if hidden
       if (canvasRef.current && canvasRef.current.style.opacity === '0') return;
 
-      // Don't trigger in no-custom-cursor areas (Game Hub, Terminal)
+      // Don't trigger in no-custom-cursor areas (Game Hub, Terminal) or no-click-effect areas
       const target = e.target as HTMLElement;
-      if (target.closest('.no-custom-cursor')) return;
+      if (target.closest('.no-custom-cursor') || target.closest('.no-click-effect')) return;
 
       createWeb(mouse.current.x, mouse.current.y);
     };
@@ -392,9 +392,9 @@ const CursorFollower = () => {
       if (!isScrolling.current) {
         lastTouchTime.current = Date.now();
 
-        // Don't trigger in no-custom-cursor areas
+        // Don't trigger in no-custom-cursor areas or no-click-effect areas
         const target = e.target as HTMLElement;
-        if (target.closest('.no-custom-cursor')) return;
+        if (target.closest('.no-custom-cursor') || target.closest('.no-click-effect')) return;
 
         // It was a tap, not a scroll
         if (canvasRef.current && canvasRef.current.style.opacity === '0') return;
