@@ -209,6 +209,24 @@ It's a prank game featuring Hakkan's friends as characters – made entirely for
         liveUrl: "https://hakkanshah.github.io/Hit-The-Jhatu/",
         category: "Fun/Game",
     },
+    {
+        name: "Rubik's Cube Solver",
+        aliases: ["rubik", "rubiks", "rubiks cube", "cube solver", "3d cube", "r-cube solver", "rcube", "rubik cube"],
+        shortDescription: "An interactive 3D Rubik's Cube with solving capabilities and step-by-step tutorials.",
+        detailedDescription: `Rubik's Cube Solver is a stunning 3D web application that brings the classic puzzle to life in your browser!
+
+It features three distinct modes:
+• **Play Mode**: Interactive 3D cube with smooth animations, keyboard shortcuts (R, L, U, D, F, B), scramble function, and move history with undo/redo
+• **Learn Mode**: 7-step layer-by-layer tutorial teaching the complete solving method from beginner to solved cube
+• **Solve Mode**: Paint your physical cube's state onto the 3D model and get a CFOP-based solution with step-by-step playback
+
+The app has a beautiful dark theme with a starfield background, responsive design for mobile, and even sound effects!`,
+        whyBuilt: "Hakkan wanted to combine his love for puzzles with 3D graphics programming. This project was a deep dive into Three.js for rendering, implementing the complex CFOP solving algorithm, and creating an engaging tutorial system that actually teaches people how to solve the cube.",
+        techHighlights: "Built with vanilla JavaScript and Three.js for 3D rendering, Web Audio API for sound effects, and pure CSS for the modern dark theme. No frameworks needed – just clean, performant code.",
+        coolFact: "The solver uses the same CFOP method that speedcubers use in competitions – Cross, F2L, OLL, and PLL!",
+        liveUrl: "https://hakkanshah.github.io/R-Cube-Solver/",
+        category: "3D Application/Game",
+    },
 ];
 
 // ============ SKILLS KNOWLEDGE ============

@@ -4,7 +4,7 @@
  * Handles all query types: general, specific, and detailed
  */
 
-import { DetectedIntent, IntentType } from './intent-detector';
+import { DetectedIntent, IntentType, PROJECT_CATEGORIES } from './intent-detector';
 import { getSectionId } from './portfolio-data';
 import {
     ConversationContext,
@@ -112,6 +112,42 @@ const buildProjectsListResponse = (context: ConversationContext): string => {
     ];
 
     return `${getRandomItem(intros)}\n\n${projectList}${getRandomItem(outros)}`;
+};
+
+// Projects by Category - AI, Games, Utilities, Social
+const buildProjectsByCategoryResponse = (category: string, context: ConversationContext): string => {
+    const categoryNames: Record<string, string> = {
+        'ai': 'AI-Powered',
+        'utility': 'Utility Tool',
+        'game': 'Game/Fun',
+        'social': 'Social Platform',
+        '3d': '3D/Graphics',
+    };
+
+    const categoryKey = category.toLowerCase();
+    const projectNames = PROJECT_CATEGORIES[categoryKey] || [];
+
+    if (projectNames.length === 0) {
+        return buildProjectsListResponse(context);
+    }
+
+    const categoryDisplayName = categoryNames[categoryKey] || category.toUpperCase();
+
+    const intros = [
+        `Here are Hakkan's ${categoryDisplayName} projects:`,
+        `Looking for ${categoryDisplayName} projects? Here they are:`,
+        `Hakkan has built ${projectNames.length} ${categoryDisplayName} projects:`,
+    ];
+
+    const projectList = projectNames.map((name, i) => {
+        const project = PROJECTS_KNOWLEDGE.find(p => p.name === name);
+        if (project) {
+            return `${i + 1}. **${project.name}** – ${project.shortDescription}`;
+        }
+        return `${i + 1}. **${name}**`;
+    }).join('\n');
+
+    return `${getRandomItem(intros)}\n\n${projectList}\n\n💡 *Ask about any of these projects for full details!*`;
 };
 
 // Project Detail - Full project info
@@ -440,6 +476,21 @@ export const generateResponse = (
                 text,
                 speakText: generateEnhancedSpeech(
                     `Hakkan has built ${PROJECTS_KNOWLEDGE.length} impressive projects! Here are some highlights: ${projectNames}. Each project solves real problems using modern tech.`,
+                    'projects'
+                ),
+                action: { type: 'navigate', target: 'projects' },
+            };
+        }
+
+        case 'projects_category': {
+            const category = intent.params.category || 'ai';
+            const text = buildProjectsByCategoryResponse(category, context);
+            const categoryProjects = PROJECT_CATEGORIES[category] || [];
+            const speakNames = categoryProjects.slice(0, 3).join(', ');
+            return {
+                text,
+                speakText: generateEnhancedSpeech(
+                    `Hakkan has ${categoryProjects.length} ${category} related projects, including ${speakNames}. Would you like details on any of these?`,
                     'projects'
                 ),
                 action: { type: 'navigate', target: 'projects' },

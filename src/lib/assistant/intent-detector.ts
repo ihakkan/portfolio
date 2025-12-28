@@ -10,6 +10,7 @@ export type IntentType =
     | 'about_detail'
     | 'projects'
     | 'project_detail'
+    | 'projects_category'
     | 'skills'
     | 'skill_category'
     | 'experience'
@@ -85,15 +86,44 @@ const fuzzyMatchWord = (word: string, targets: string[], threshold = 0.7): { mat
 
 const PROJECT_NAMES = [
     'mockhick', 'mock hick', 'maukhik',
-    'buildmycv', 'build my cv', 'cvbanao', 'resume builder',
+    'buildmycv', 'build my cv', 'cvbanao', 'resume builder', 'cv builder', 'cv maker', 'resume',
     'verifyai', 'verify ai', 'deepfake detector', 'fake news',
     'confesscode', 'confess code', 'anonymous',
     'mememate', 'meme mate', 'meme dating',
     'aluchat', 'alu chat', 'chatbot',
     'reelxtract', 'reel xtract', 'reels downloader', 'instagram downloader',
     'mathomatic', 'math o matic', 'calculator',
-    'hit the jhatu', 'jhatu game', 'whack a mole'
+    'hit the jhatu', 'jhatu game', 'whack a mole',
+    'rubik', 'rubiks', 'rubiks cube', 'cube solver', '3d cube', 'r cube solver', 'rcube'
 ];
+
+// ============ Project Categories for Detection ============
+
+export const PROJECT_CATEGORIES: Record<string, string[]> = {
+    'ai': ['MockHick', 'BuildMyCV', 'VerifyAI', 'AluChat'],
+    'utility': ['ReelXtract', 'Math-O-Matic'],
+    'game': ['Hit-The-Jhatu', "Rubik's Cube Solver"],
+    'social': ['ConfessCode', 'MemeMate'],
+    '3d': ["Rubik's Cube Solver"],
+};
+
+// ============ Keyword Extraction for Long Queries ============
+
+const STOP_WORDS = new Set([
+    'tell', 'me', 'about', 'his', 'your', 'the', 'in', 'detail', 'details', 'detailed',
+    'i', 'want', 'to', 'know', 'can', 'you', 'what', 'is', 'are', 'please', 'more',
+    'give', 'show', 'explain', 'describe', 'of', 'and', 'or', 'a', 'an', 'for',
+    'how', 'does', 'do', 'have', 'has', 'project', 'projects', 'app', 'application',
+    'hakkan', 'hakan', 'made', 'built', 'created', 'work', 'works'
+]);
+
+const extractKeywordsFromQuery = (input: string): string[] => {
+    const normalized = normalizeInput(input);
+    const words = normalized.split(/\s+/).filter(w =>
+        w.length > 2 && !STOP_WORDS.has(w)
+    );
+    return words;
+};
 
 // ============ Skill Categories for Detection ============
 
@@ -190,6 +220,41 @@ const intentPatterns: IntentPattern[] = [
         fuzzyKeywords: ['projcts', 'porfolio', 'projets'],
     },
 
+    // Projects by Category (AI projects, utility projects, etc.)
+    {
+        intent: 'projects_category',
+        patterns: [
+            /ai\s*(related|based|powered)?\s*projects?/i,
+            /projects?\s*(with|using|that\s*use)\s*ai/i,
+            /tell\s*(me)?\s*(about)?\s*(his|your)?\s*ai\s*projects?/i,
+            /(game|gaming)\s*projects?/i,
+            /projects?\s*(that\s*are)?\s*games?/i,
+            /utility\s*(tool)?\s*projects?/i,
+            /social\s*(media)?\s*projects?/i,
+            /3d\s*projects?/i,
+        ],
+        keywords: ['ai projects', 'ai related', 'ai based', 'game projects', 'utility projects', 'social projects', '3d projects'],
+        extractParams: (input: string): Record<string, string> => {
+            const normalized = normalizeInput(input);
+            if (normalized.includes('ai') || normalized.includes('artificial intelligence')) {
+                return { category: 'ai' };
+            }
+            if (normalized.includes('game') || normalized.includes('gaming') || normalized.includes('fun')) {
+                return { category: 'game' };
+            }
+            if (normalized.includes('utility') || normalized.includes('tool')) {
+                return { category: 'utility' };
+            }
+            if (normalized.includes('social')) {
+                return { category: 'social' };
+            }
+            if (normalized.includes('3d')) {
+                return { category: '3d' };
+            }
+            return {};
+        },
+    },
+
     // Project Detail (specific project) - only matches when an actual project name is found
     {
         intent: 'project_detail',
@@ -267,6 +332,13 @@ const intentPatterns: IntentPattern[] = [
                 'jhatu': 'Hit-The-Jhatu', 'jhatu game': 'Hit-The-Jhatu', 'whack game': 'Hit-The-Jhatu',
                 'whack a mole': 'Hit-The-Jhatu', 'jaatu': 'Hit-The-Jhatu', 'jatu': 'Hit-The-Jhatu',
                 'hit jhatu': 'Hit-The-Jhatu', 'hittejhatu': 'Hit-The-Jhatu',
+
+                // Rubik's Cube Solver - 3D puzzle application
+                'rubik': "Rubik's Cube Solver", 'rubiks': "Rubik's Cube Solver", 'rubiks cube': "Rubik's Cube Solver",
+                'rubik cube': "Rubik's Cube Solver", 'cube solver': "Rubik's Cube Solver", '3d cube': "Rubik's Cube Solver",
+                'r cube solver': "Rubik's Cube Solver", 'rcube': "Rubik's Cube Solver", 'r-cube': "Rubik's Cube Solver",
+                'rubik solver': "Rubik's Cube Solver", 'cube puzzle': "Rubik's Cube Solver", 'rubix': "Rubik's Cube Solver",
+                'rubix cube': "Rubik's Cube Solver", 'rubicks': "Rubik's Cube Solver", 'rubicks cube': "Rubik's Cube Solver",
             };
 
             for (const [key, value] of Object.entries(projectMappings)) {
@@ -276,7 +348,7 @@ const intentPatterns: IntentPattern[] = [
             }
 
             // Fuzzy matching fallback using Levenshtein distance for close matches
-            const projectNames = ['mockhick', 'buildmycv', 'verifyai', 'confesscode', 'mememate', 'aluchat', 'reelxtract', 'mathomatic', 'jhatu'];
+            const projectNames = ['mockhick', 'buildmycv', 'verifyai', 'confesscode', 'mememate', 'aluchat', 'reelxtract', 'mathomatic', 'jhatu', 'rubik'];
             const words = normalized.split(/\s+/);
 
             for (const word of words) {
@@ -556,7 +628,8 @@ const PROJECT_NAME_LOOKUP: Record<string, string> = {
     // BuildMyCV
     'buildmycv': 'BuildMyCV', 'build my cv': 'BuildMyCV', 'cvbanao': 'BuildMyCV',
     'resume builder': 'BuildMyCV', 'cv builder': 'BuildMyCV', 'cv maker': 'BuildMyCV',
-    'build cv': 'BuildMyCV', 'buildmyresume': 'BuildMyCV',
+    'build cv': 'BuildMyCV', 'buildmyresume': 'BuildMyCV', 'resume': 'BuildMyCV',
+    'cv': 'BuildMyCV', 'resume maker': 'BuildMyCV',
     // VerifyAI
     'verifyai': 'VerifyAI', 'verify ai': 'VerifyAI', 'deepfake': 'VerifyAI',
     'fake news': 'VerifyAI', 'deepfake detector': 'VerifyAI',
@@ -569,9 +642,13 @@ const PROJECT_NAME_LOOKUP: Record<string, string> = {
     // ReelXtract
     'reelxtract': 'ReelXtract', 'reel xtract': 'ReelXtract', 'reels downloader': 'ReelXtract',
     // Math-O-Matic
-    'mathomatic': 'Math-O-Matic', 'math o matic': 'Math-O-Matic',
+    'mathomatic': 'Math-O-Matic', 'math o matic': 'Math-O-Matic', 'calculator': 'Math-O-Matic',
     // Hit-The-Jhatu
     'jhatu': 'Hit-The-Jhatu', 'hit the jhatu': 'Hit-The-Jhatu', 'jaatu': 'Hit-The-Jhatu',
+    // Rubik's Cube Solver
+    'rubik': "Rubik's Cube Solver", 'rubiks': "Rubik's Cube Solver", 'rubiks cube': "Rubik's Cube Solver",
+    'cube solver': "Rubik's Cube Solver", 'rubix': "Rubik's Cube Solver", 'rcube': "Rubik's Cube Solver",
+    '3d cube': "Rubik's Cube Solver",
 };
 
 const checkPriorityProjectName = (input: string): DetectedIntent | null => {
@@ -589,8 +666,22 @@ const checkPriorityProjectName = (input: string): DetectedIntent | null => {
         }
     }
 
+    // Extract meaningful keywords for long queries like "verifyai detail" or "tell me about verify ai in detail"
+    const keywords = extractKeywordsFromQuery(input);
+    for (const keyword of keywords) {
+        // Check direct keyword match against project lookup
+        if (PROJECT_NAME_LOOKUP[keyword]) {
+            return {
+                intent: 'project_detail',
+                confidence: 0.98,
+                params: { projectName: PROJECT_NAME_LOOKUP[keyword] },
+                originalInput: input,
+            };
+        }
+    }
+
     // Fuzzy match for typos (allowing 2 character differences)
-    const projectBases = ['mockhick', 'buildmycv', 'verifyai', 'confesscode', 'mememate', 'aluchat', 'reelxtract', 'mathomatic', 'jhatu'];
+    const projectBases = ['mockhick', 'buildmycv', 'verifyai', 'confesscode', 'mememate', 'aluchat', 'reelxtract', 'mathomatic', 'jhatu', 'rubik'];
     const words = normalized.split(/\s+/).filter(w => w.length >= 4);
 
     for (const word of words) {
@@ -601,6 +692,23 @@ const checkPriorityProjectName = (input: string): DetectedIntent | null => {
                     return {
                         intent: 'project_detail',
                         confidence: 0.95,
+                        params: { projectName },
+                        originalInput: input,
+                    };
+                }
+            }
+        }
+    }
+
+    // Also fuzzy match against extracted keywords
+    for (const keyword of keywords) {
+        for (const base of projectBases) {
+            if (levenshteinDistance(keyword, base) <= 2) {
+                const projectName = PROJECT_NAME_LOOKUP[base];
+                if (projectName) {
+                    return {
+                        intent: 'project_detail',
+                        confidence: 0.9,
                         params: { projectName },
                         originalInput: input,
                     };
