@@ -69,49 +69,61 @@ const AssistantInner: React.FC = () => {
                         transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                         className="fixed bottom-6 right-6 z-50"
                     >
-                        <Button
-                            onClick={() => setIsOpen(true)}
-                            size="icon"
-                            className={cn(
-                                'rounded-full w-12 h-12',
-                                'bg-gradient-to-br from-primary to-primary/80',
-                                'hover:from-primary/90 hover:to-primary/70',
-                                'text-primary-foreground shadow-lg',
-                                'border border-primary/50',
-                                'transition-all duration-300 hover:scale-105 hover:shadow-xl',
-                                'group'
-                            )}
-                            title="Open Hakkan's Assistant (Ctrl+K)"
-                        >
-                            <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                        </Button>
+                        <div className="flex items-center gap-3">
+                            {/* Speech Bubble Tooltip - slides out from button */}
+                            <motion.div
+                                initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                                animate={{
+                                    opacity: [0, 1, 1, 0],
+                                    x: [20, 0, 0, 20],
+                                    scale: [0.9, 1, 1, 0.9]
+                                }}
+                                transition={{
+                                    duration: 3,
+                                    times: [0, 0.1, 0.85, 1],
+                                    ease: "easeOut"
+                                }}
+                                className="relative whitespace-nowrap bg-background/95 backdrop-blur-sm border border-border rounded-2xl px-4 py-2.5 shadow-xl"
+                            >
+                                <span className="flex items-center gap-2 text-sm">
+                                    <Sparkles className="w-3 h-3 text-primary" />
+                                    <span className="font-medium">Ask anything about Hakkan!</span>
+                                </span>
+                                <span className="text-[10px] text-muted-foreground mt-1 block text-center">
+                                    Press <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">Ctrl+K</kbd>
+                                </span>
+                                {/* Triangle pointer with border - outer (border) + inner (fill) */}
+                                <div className="absolute -right-[10px] top-1/2 -translate-y-1/2">
+                                    {/* Outer triangle (border color) */}
+                                    <div className="w-0 h-0 border-t-[10px] border-b-[10px] border-l-[10px] border-t-transparent border-b-transparent border-l-border" />
+                                    {/* Inner triangle (background fill) - positioned over outer */}
+                                    <div className="absolute top-[1px] left-[-11px] w-0 h-0 border-t-[9px] border-b-[9px] border-l-[9px] border-t-transparent border-b-transparent border-l-background" />
+                                </div>
+                            </motion.div>
 
-                        {/* Subtle glow effect */}
-                        <span className="absolute inset-0 rounded-full bg-primary/20 animate-pulse pointer-events-none" />
+                            {/* Button */}
+                            <div className="relative">
+                                <Button
+                                    onClick={() => setIsOpen(true)}
+                                    size="icon"
+                                    className={cn(
+                                        'rounded-full w-12 h-12',
+                                        'bg-gradient-to-br from-primary to-primary/80',
+                                        'hover:from-primary/90 hover:to-primary/70',
+                                        'text-primary-foreground shadow-lg',
+                                        'border border-primary/50',
+                                        'transition-all duration-300 hover:scale-105 hover:shadow-xl',
+                                        'group'
+                                    )}
+                                    title="Open Hakkan's Assistant (Ctrl+K)"
+                                >
+                                    <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                </Button>
 
-                        {/* Tooltip - Left of button, auto-disappears */}
-                        <motion.div
-                            initial={{ opacity: 0, x: 10 }}
-                            animate={{ opacity: [0, 1, 1, 0], x: [10, 0, 0, 0] }}
-                            transition={{
-                                duration: 5,
-                                times: [0, 0.1, 0.8, 1],
-                                ease: "easeOut"
-                            }}
-                            className="absolute right-full mr-3 bottom-0 whitespace-nowrap bg-background/95 backdrop-blur-sm border border-border rounded-xl px-3 py-2 shadow-lg"
-                        >
-                            <span className="flex items-center gap-2 text-sm">
-                                <Sparkles className="w-4 h-4 text-primary" />
-                                <span className="font-medium">Ask anything about Hakkan!</span>
-                            </span>
-                            <span className="text-[10px] text-muted-foreground mt-0.5 block text-center">
-                                Press <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">Ctrl+K</kbd>
-                            </span>
-                            {/* Arrow pointing right */}
-                            <div className="absolute left-full top-1/2 -translate-y-1/2">
-                                <div className="border-8 border-transparent border-l-background/95" />
+                                {/* Subtle glow effect */}
+                                <span className="absolute inset-0 rounded-full bg-primary/20 animate-pulse pointer-events-none" />
                             </div>
-                        </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
