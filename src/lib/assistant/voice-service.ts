@@ -136,7 +136,8 @@ export const startListening = (
         recognition = new SpeechRecognition();
 
         // Improved settings for better recognition
-        recognition.lang = options.lang || 'en-US';
+        // Using Indian English (en-IN) for better recognition of Indian accents
+        recognition.lang = options.lang || 'en-IN';
         recognition.continuous = true; // Keep listening for better results
         recognition.interimResults = true; // Show partial results
         recognition.maxAlternatives = 3; // Get multiple alternatives for better accuracy
@@ -334,9 +335,11 @@ export const speak = (
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = options.lang || 'en-US';
 
-        // Human-like voice settings
-        utterance.rate = options.voiceRate || 0.95;
-        utterance.pitch = options.voicePitch || 1.05;
+        // Cheerful, expressive voice settings
+        // Higher pitch (1.15) for brighter, more cheerful sound
+        // Slightly faster rate (1.0) for energetic delivery
+        utterance.rate = options.voiceRate || 1.0;
+        utterance.pitch = options.voicePitch || 1.15;
         utterance.volume = 1.0;
 
         // Use cached voice or find the best one

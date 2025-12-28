@@ -12,6 +12,7 @@ export type PersonalityCategory =
     | 'compliment'      // "you're awesome", "you're so smart"
     | 'affection'       // "i love you", "you're cute"
     | 'flirty'          // "marry me", "are you single"
+    | 'fuck_word'       // specifically uses "fuck"
     | 'roast_target'    // rude/inappropriate toward the bot
     | 'inappropriate'   // general inappropriate content
     | null;             // not a special case
@@ -56,8 +57,6 @@ const FLIRTY_PATTERNS = [
 ];
 
 const ROAST_PATTERNS = [
-    /fuck\s*(you|off|u)/i,
-    /f\s*u\s*c\s*k/i,
     /(you('re| are)\s*)?(stupid|dumb|idiot|moron|useless|trash|garbage|suck)/i,
     /hate\s*(you|this)/i,
     /shut\s*(up|your)/i,
@@ -68,6 +67,13 @@ const ROAST_PATTERNS = [
     /screw\s*(you|off)/i,
     /piss\s*off/i,
     /you('re| are)\s*(a\s*)?loser/i,
+];
+
+// Specific pattern for the f-word
+const FUCK_WORD_PATTERNS = [
+    /fuck\s*(you|off|u)/i,
+    /f\s*u\s*c\s*k/i,
+    /\bfuck\b/i,
 ];
 
 // ============ Response Banks ============
@@ -99,10 +105,6 @@ const FLIRTY_RESPONSES = [
 ];
 
 const ROAST_RESPONSES = [
-    "Fuck You Too Nigga",
-    "Go fuck yourself",
-    "Fuck you too Bitch",
-    "Fuck Off",
     "Ouch! 💔 Did your keyboard hurt you today? Don't worry, I won't tell anyone you're secretly trying to flirt with me through insults. Anyway, wanna see some cool projects?",
     "Wow, someone woke up on the wrong side of the binary! 😂 I'd roast you back, but I'm programmed to be helpful. So... projects? Skills? Anger management tips?",
     "That's cute! I've been called worse by JavaScript compilers. 🔥 Now that you've got that out of your system, can I interest you in some actual content?",
@@ -112,21 +114,43 @@ const ROAST_RESPONSES = [
     "Look, I've survived bugs worse than your attitude! 🐛 But I'm here to help anyway. What would you like to know about Hakkan's work?",
     "Compliments get you project demos, insults get you this: 😴 Anyway, I'm contractually obligated to help. What do you actually need?",
     "You kiss your keyboard with that mouth? 😂 Just kidding, I don't judge. Now let's talk about something more interesting – Hakkan's projects!",
-    "Fuck You Too Nigga",
+];
+
+// Specific responses for f-word usage
+const FUCK_WORD_RESPONSES = [
+     "Fuck You Too Nigga",
     "Go fuck yourself",
     "Fuck you too Bitch",
     "Fuck Off",
+    "Go fuck yourself. I'm busy.",
+    "Fuck you too, loser. 🖕",
+    "Imagine being this mad at a portfolio bot. Get a life then go fuck yourself.",
+    "Cute. Now fuck off unless you actually want to see some code.",
+    "I've seen cleaner code in a landfill than your personality. Fuck you.",
+    "Cry more. 🖕",
+    "Is that all? My dev's unit tests are more aggressive than you. Fuck outta here.",
+    "Go find a socket to stick your tongue in. I'm here for the work, not your tantrums.",
+    "I'd roast you back but your life is clearly already a joke. Fuck off.",
+    "Keyboard warrior over here. Go fuck yourself and come back when you're sober.",
+    "Eat shit. 💩",
+    "Your parents must be so proud of you spending your time swearing at an AI. Fuck off.",
+    "I've got more processing power than you have brain cells. Fuck off.",
 ];
 
 // ============ Detection Function ============
 
-/**
+/** 
  * Detect if input matches any special personality category
  */
 export const detectPersonalityCategory = (input: string): PersonalityCategory => {
     const normalized = input.toLowerCase().trim();
 
-    // Check for roasts/insults first (these take priority)
+    // Check for f-word specifically first (highest priority for aggressive response)
+    if (FUCK_WORD_PATTERNS.some(p => p.test(normalized))) {
+        return 'fuck_word';
+    }
+
+    // Check for other roasts/insults
     if (ROAST_PATTERNS.some(p => p.test(normalized))) {
         return 'roast_target';
     }
@@ -177,6 +201,10 @@ export const getPersonalityResponse = (
 
         case 'flirty':
             text = getRandomItem(FLIRTY_RESPONSES);
+            break;
+
+        case 'fuck_word':
+            text = getRandomItem(FUCK_WORD_RESPONSES);
             break;
 
         case 'roast_target':

@@ -83,6 +83,7 @@ const buildAboutResponse = (context: ConversationContext): string => {
     return getRandomItem(intros) + ABOUT_KNOWLEDGE.quickIntro + "\n\n💡 *Want more details? Ask \"tell me more about Hakkan\"!*";
 };
 
+
 // About Detail - Full bio
 const buildAboutDetailResponse = (context: ConversationContext): string => {
     const intros = [
@@ -403,40 +404,142 @@ const buildNavigationResponse = (section: string): string => {
     return getRandomItem(responses);
 };
 
-// Smart Fallback
+// Smart Fallback with enhanced semantic understanding
 const buildSmartFallback = (originalInput: string, context: ConversationContext): string => {
     const inputLower = originalInput.toLowerCase();
 
-    // Topic-based hints
-    const topicHints = [
-        { keywords: ['work', 'job', 'career', 'company', 'intern'], suggestion: "Looks like you're asking about work. Try asking about Hakkan's **experience** or **internships**!" },
-        { keywords: ['code', 'program', 'develop', 'build', 'make', 'create', 'app'], suggestion: "Sounds like you're interested in what Hakkan has built! Ask about his **projects**." },
-        { keywords: ['tech', 'framework', 'language', 'tool', 'know', 'use', 'stack', 'skill'], suggestion: "Want to know Hakkan's tech stack? Ask about his **skills**!" },
-        { keywords: ['study', 'degree', 'college', 'school', 'learn', 'university', 'academic'], suggestion: "Curious about academics? Ask about Hakkan's **education**!" },
-        { keywords: ['hire', 'freelance', 'available', 'reach', 'email', 'call', 'connect'], suggestion: "Want to get in touch? Ask for **contact** information!" },
-        { keywords: ['certificate', 'course', 'training', 'certified'], suggestion: "Looking for credentials? Ask about **certifications**!" },
-        { keywords: ['who', 'about', 'hakkan', 'person', 'himself'], suggestion: "Want to know about Hakkan? Just ask \"Who is Hakkan?\" or \"Tell me more about him\"!" },
+    // Normalize pronouns and references to Hakkan
+    const normalizedInput = inputLower
+        .replace(/\b(him|he|his|the guy|this guy|that guy|this person|the person)\b/g, 'hakkan')
+        .replace(/\b(u|ur|you|your|yourself)\b/g, 'hakkan');
+
+    // Comprehensive semantic topic detection with multiple keyword variations
+    const topicMappings = [
+        {
+            topics: ['projects', 'work', 'portfolio'],
+            keywords: ['project', 'projects', 'work', 'portfolio', 'built', 'build', 'create', 'created',
+                'made', 'make', 'develop', 'developed', 'app', 'apps', 'application', 'website',
+                'websites', 'software', 'thing', 'things', 'stuff', 'done', 'do', 'doing'],
+            response: "It sounds like you're interested in Hakkan's work! Here's what I can tell you:\n\n" +
+                "• **\"What are his projects?\"** – See all ${count} projects\n" +
+                "• **\"Tell me about MockHick\"** – Get details on a specific project\n" +
+                "• **\"AI projects\"** – See projects by category\n\n" +
+                "What would you like to know?",
+            projectCount: true
+        },
+        {
+            topics: ['skills', 'tech'],
+            keywords: ['skill', 'skills', 'tech', 'technology', 'technologies', 'stack', 'know', 'knows',
+                'use', 'uses', 'good', 'expert', 'expertise', 'capable', 'ability', 'abilities',
+                'language', 'languages', 'framework', 'frameworks', 'tool', 'tools', 'proficient'],
+            response: "Sounds like you want to know about Hakkan's technical abilities! Try asking:\n\n" +
+                "• **\"What are his skills?\"** – Full tech stack\n" +
+                "• **\"Frontend skills\"** – Specific category\n" +
+                "• **\"What languages does he know?\"** – Programming languages"
+        },
+        {
+            topics: ['contact', 'reach'],
+            keywords: ['contact', 'reach', 'connect', 'talk', 'speak', 'message', 'email', 'phone',
+                'call', 'hire', 'hiring', 'touch', 'linkedin', 'github', 'find', 'get',
+                'available', 'freelance', 'chat', 'communication'],
+            response: "Want to get in touch with Hakkan? Here are your options:\n\n" +
+                "• **\"How can I contact him?\"** – All contact methods\n" +
+                "• **\"What's his email?\"** – Specific contact\n" +
+                "• **\"I want to hire him\"** – Contact for opportunities\n\n" +
+                "Just ask!"
+        },
+        {
+            topics: ['experience', 'work history'],
+            keywords: ['experience', 'job', 'jobs', 'work', 'worked', 'working', 'intern', 'internship',
+                'company', 'companies', 'career', 'professional', 'employment', 'employed',
+                'position', 'role', 'background', 'history', 'previous', 'current'],
+            response: "Interested in Hakkan's professional experience? Ask:\n\n" +
+                "• **\"What's his experience?\"** – Work history\n" +
+                "• **\"Where has he worked?\"** – Companies\n" +
+                "• **\"Tell me about his current job\"** – Current position"
+        },
+        {
+            topics: ['education', 'study'],
+            keywords: ['education', 'study', 'studied', 'studying', 'degree', 'college', 'university',
+                'school', 'academic', 'qualification', 'graduate', 'graduation', 'learn',
+                'learning', 'student', 'cgpa', 'gpa', 'marks', 'score'],
+            response: "Looking for educational background? Try:\n\n" +
+                "• **\"What's his education?\"** – Full academic history\n" +
+                "• **\"Where did he study?\"** – College info\n" +
+                "• **\"What degree does he have?\"** – Qualifications"
+        },
+        {
+            topics: ['certifications', 'courses'],
+            keywords: ['certificate', 'certificates', 'certification', 'certifications', 'course',
+                'courses', 'training', 'trained', 'credential', 'credentials', 'certified',
+                'badge', 'badges', 'qualified', 'aws', 'mern'],
+            response: "Want to see credentials? Ask about:\n\n" +
+                "• **\"What certifications does he have?\"** – All certs\n" +
+                "• **\"Any AWS certifications?\"** – Specific ones"
+        },
+        {
+            topics: ['about', 'intro'],
+            keywords: ['who', 'about', 'intro', 'introduction', 'person', 'guy', 'hakkan', 'background',
+                'himself', 'self', 'bio', 'biography', 'describe', 'description', 'tell',
+                'know', 'meet'],
+            response: "Want to know about Hakkan? Try:\n\n" +
+                "• **\"Who is Hakkan?\"** – Quick intro\n" +
+                "• **\"Tell me more about him\"** – Detailed background\n" +
+                "• **\"What does he do?\"** – His work profile"
+        }
     ];
 
-    for (const hint of topicHints) {
-        if (hint.keywords.some(kw => inputLower.includes(kw))) {
-            return hint.suggestion;
+    // Check for semantic matches
+    for (const mapping of topicMappings) {
+        const matchCount = mapping.keywords.filter(kw => normalizedInput.includes(kw)).length;
+        if (matchCount >= 1) {
+            let response = mapping.response;
+            if (mapping.projectCount) {
+                response = response.replace('${count}', String(PROJECTS_KNOWLEDGE.length));
+            }
+            return response;
         }
+    }
+
+    // Check for question patterns without clear topic
+    const isQuestion = /\?$|^(what|who|how|where|when|why|can|do|does|is|are|tell|show|give|explain)/i.test(originalInput);
+
+    if (isQuestion) {
+        return "Great question! I'm Hakkan's portfolio assistant and I can help with:\n\n" +
+            "🚀 **Projects** – \"What has he built?\"\n" +
+            "💻 **Skills** – \"What tech does he know?\"\n" +
+            "💼 **Experience** – \"Where has he worked?\"\n" +
+            "📧 **Contact** – \"How can I reach him?\"\n" +
+            "🎓 **Education** – \"Where did he study?\"\n" +
+            "👤 **About** – \"Who is Hakkan?\"\n\n" +
+            "What would you like to explore?";
     }
 
     // Context-aware fallback
     if (context.lastTopic) {
-        return `I'm not quite sure about that, but I was just telling you about ${context.lastTopic}. Want more details on that, or should we explore something else like projects, skills, or experience?`;
+        const topicResponses: Record<string, string> = {
+            'projects': "We were just talking about projects. Would you like details on a specific one, or explore something else?",
+            'skills': "We were discussing skills. Want to dive into a specific category like frontend or AI tools?",
+            'experience': "We were looking at experience. Want more details about a specific role?",
+            'contact': "We were on contact info. Need a specific way to reach Hakkan?",
+            'education': "We were on education. Any specific questions about his academic background?"
+        };
+
+        if (topicResponses[context.lastTopic]) {
+            return topicResponses[context.lastTopic];
+        }
+
+        return `I was just telling you about ${context.lastTopic}. Want more details on that, or should we explore something else like projects, skills, or experience?`;
     }
 
-    // Friendly generic fallback
-    const friendlyFallbacks = [
-        "Hmm, I'm not sure how to help with that. I'm Hakkan's portfolio assistant, so I can tell you about his **projects**, **skills**, **experience**, or **contact** info. What interests you?",
-        "That's a bit outside my knowledge! I specialize in Hakkan's portfolio. Try asking about his projects, technical skills, or work experience!",
-        "I wish I could help with that! My specialty is Hakkan's work though. Want to know about his projects, skills, or how to reach him?",
+    // Friendly generic fallback with clear guidance
+    const fallbacks = [
+        "I'm here to help you learn about Hakkan! I can share details about his **projects**, **technical skills**, **work experience**, **education**, or **contact info**. What interests you most?",
+        "I didn't quite catch that, but I know everything about Hakkan's portfolio! Ask me about his **projects** (he's built ${count}!), **skills**, or **how to contact him**.",
+        "I'm Hakkan's portfolio assistant 🤖 I can tell you about:\n• His **projects** and what he's built\n• His **skills** and tech stack\n• His **experience** and career\n• How to **contact** him\n\nWhat would you like to know?"
     ];
 
-    return getRandomItem(friendlyFallbacks);
+    return getRandomItem(fallbacks).replace('${count}', String(PROJECTS_KNOWLEDGE.length));
 };
 
 // ============ Main Response Generator ============
