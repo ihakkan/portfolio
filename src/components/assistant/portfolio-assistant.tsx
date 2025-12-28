@@ -138,7 +138,7 @@ const AssistantInner: React.FC = () => {
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                         className={cn(
                             'fixed z-50 bg-background/95 backdrop-blur-xl border-2 border-foreground shadow-2xl',
-                            'flex flex-col overflow-hidden',
+                            'flex flex-col overflow-hidden no-custom-cursor',
                             isMobile
                                 ? 'inset-0 rounded-none'
                                 : isMinimized
