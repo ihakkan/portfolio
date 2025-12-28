@@ -5,12 +5,13 @@
  * Floating button with expandable chat panel
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Minimize2, Sparkles, MessageSquareText, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AssistantProvider, useAssistant } from '@/lib/assistant';
+import { AssistantProvider, useAssistant, speak } from '@/lib/assistant';
+import { AssistantState } from '@/lib/assistant/assistant-context'; // Import type for state override
 import AssistantChat from './assistant-chat';
 import { cn } from '@/lib/utils';
 
@@ -29,10 +30,77 @@ const Assistant3DBot = dynamic(() => import('./assistant-3d-bot'), {
 type ChatMode = 'text' | 'voice';
 
 const AssistantInner: React.FC = () => {
-    const { isOpen, setIsOpen, state } = useAssistant();
+    const { isOpen, setIsOpen, state, voiceEnabled } = useAssistant();
     const [isMinimized, setIsMinimized] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [chatMode, setChatMode] = useState<ChatMode>('voice');
+
+    // Local state to override global state for easter eggs (animating without chat context)
+    const [overrideState, setOverrideState] = useState<AssistantState | null>(null);
+
+    // Easter Egg: Shake Detection
+    const lastMousePos = useRef({ x: 0, y: 0 });
+    const shakeDistance = useRef(0);
+    const lastShakeCheck = useRef(Date.now());
+    const lastEasterEggTime = useRef(0);
+    const shakeThreshold = 700; // Pixels moved in 700ms
+    const shakeCheckInterval = 500;
+
+    // Hover Voice Response
+    const lastHoverTime = useRef(0);
+    const handleHoverSpeak = (text: string) => {
+        if (!voiceEnabled) return;
+        const now = Date.now();
+        if (now - lastHoverTime.current < 2000) return; // 2s cooldown
+        if (state === 'speaking' || overrideState === 'speaking') return; // Don't interrupt
+
+        lastHoverTime.current = now;
+        speak(text);
+    };
+
+    const handleBotMouseMove = (e: React.MouseEvent) => {
+        // Track movement
+        const currentPos = { x: e.clientX, y: e.clientY };
+        const dist = Math.abs(currentPos.x - lastMousePos.current.x) + Math.abs(currentPos.y - lastMousePos.current.y);
+        shakeDistance.current += dist;
+        lastMousePos.current = currentPos;
+
+        const now = Date.now();
+        if (now - lastShakeCheck.current > shakeCheckInterval) {
+            // Check if shaken enough
+            if (shakeDistance.current > shakeThreshold) {
+                triggerShakeEasterEgg();
+            }
+            // Reset window
+            shakeDistance.current = 0;
+            lastShakeCheck.current = now;
+        }
+    };
+
+    const triggerShakeEasterEgg = () => {
+        if (!voiceEnabled) return;
+
+        const now = Date.now();
+        // Cooldown: 5 seconds
+        if (now - lastEasterEggTime.current < 5000) return;
+        if (state === 'speaking' || overrideState === 'speaking') return; // Don't interrupt if already speaking
+
+        lastEasterEggTime.current = now;
+
+        const responses = [
+            "Hey! What are you doing? I'm getting dizzy!",
+            "Whoa whoa! Stop shaking me!",
+            "Please stop cursor dancing on my face!",
+        ];
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+
+        // Speak without adding to chat history, but animate bot
+        speak(
+            randomResponse,
+            () => setOverrideState(null),    // onEnd
+            () => setOverrideState('speaking') // onStart
+        );
+    };
 
     // Check for mobile
     useEffect(() => {
@@ -177,6 +245,7 @@ const AssistantInner: React.FC = () => {
                                         onClick={() => setIsMinimized(!isMinimized)}
                                         className="h-8 w-8"
                                         title={isMinimized ? 'Expand' : 'Minimize'}
+                                        onMouseEnter={() => handleHoverSpeak("Need some space? You can minimize me here.")}
                                     >
                                         <Minimize2 className="w-4 h-4" />
                                     </Button>
@@ -187,6 +256,7 @@ const AssistantInner: React.FC = () => {
                                     onClick={() => setIsOpen(false)}
                                     className="h-8 w-8"
                                     title="Close"
+                                    onMouseEnter={() => handleHoverSpeak("Click here to close the assistant. I'll be here when you need me!")}
                                 >
                                     <X className="w-4 h-4" />
                                 </Button>
@@ -198,6 +268,7 @@ const AssistantInner: React.FC = () => {
                             <div className="flex border-b border-border bg-muted/10">
                                 <button
                                     onClick={() => setChatMode('voice')}
+                                    onMouseEnter={() => handleHoverSpeak("Voice mode to talk to me directly.")}
                                     className={cn(
                                         'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all',
                                         chatMode === 'voice'
@@ -210,6 +281,7 @@ const AssistantInner: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setChatMode('text')}
+                                    onMouseEnter={() => handleHoverSpeak("Prefer typing? Switch to text mode here.")}
                                     className={cn(
                                         'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all',
                                         chatMode === 'text'
@@ -230,7 +302,10 @@ const AssistantInner: React.FC = () => {
                                 {chatMode === 'voice' ? (
                                     <div className="flex-1 flex flex-col">
                                         {/* 3D Bot - Main Attraction */}
-                                        <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-muted/10 to-background relative overflow-hidden">
+                                        <div
+                                            className="flex-1 flex items-center justify-center bg-gradient-to-b from-muted/10 to-background relative overflow-hidden"
+                                            onMouseMove={handleBotMouseMove}
+                                        >
                                             {/* Background glow effect */}
                                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                                 <div className={cn(
@@ -245,7 +320,7 @@ const AssistantInner: React.FC = () => {
                                             {/* 3D Bot */}
                                             <div className="relative z-10">
                                                 <Assistant3DBot
-                                                    state={state}
+                                                    state={overrideState || state}
                                                     size="xl"
                                                     className="w-64 h-64 md:w-72 md:h-72"
                                                 />

@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Mic, MicOff, Volume2, VolumeX, Loader2, Sparkles, Briefcase, Code2, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAssistant } from '@/lib/assistant';
+import { useAssistant, speak } from '@/lib/assistant';
 import ChatMessage from './chat-message';
 import { cn } from '@/lib/utils';
 
@@ -78,7 +78,20 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
 
     const isListening = state === 'listening';
     const isSpeaking = state === 'speaking';
+
     const isThinking = state === 'thinking';
+
+    // Hover Voice Response
+    const lastHoverTime = useRef(0);
+    const handleHoverSpeak = (text: string) => {
+        if (!voiceEnabled) return;
+        const now = Date.now();
+        if (now - lastHoverTime.current < 2000) return; // 2s cooldown
+        if (state === 'speaking') return; // Don't interrupt
+
+        lastHoverTime.current = now;
+        speak(text);
+    };
 
     // Suggestion chips for quick questions
     const suggestions = [
@@ -119,6 +132,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
                                     ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/40 scale-110'
                                     : 'bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30'
                             )}
+                            onMouseEnter={() => handleHoverSpeak("Click the button to talk to me.")}
                         >
                             {isListening ? (
                                 <MicOff className="w-7 h-7" />
@@ -136,6 +150,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
                                 'text-xs gap-1.5 rounded-full min-w-[100px]',
                                 voiceEnabled ? 'text-primary' : 'text-muted-foreground'
                             )}
+                            onMouseEnter={() => handleHoverSpeak("Toggle my voice on or off.")}
                         >
                             {voiceEnabled ? (
                                 <>
@@ -274,6 +289,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
                                             'text-xs gap-1.5',
                                             voiceEnabled ? 'text-primary' : 'text-muted-foreground'
                                         )}
+                                        onMouseEnter={() => handleHoverSpeak("Toggle my voice on or off.")}
                                     >
                                         {voiceEnabled ? (
                                             <>
@@ -343,6 +359,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
                                             : 'border-foreground/20 hover:border-primary'
                                     )}
                                     title={isListening ? 'Stop listening' : 'Start voice input'}
+                                    onMouseEnter={() => handleHoverSpeak("Click to speak instead of type.")}
                                 >
                                     {isListening ? (
                                         <MicOff className="w-4 h-4" />
