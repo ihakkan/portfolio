@@ -12,6 +12,12 @@ import { Float, MeshDistortMaterial, Sphere, RoundedBox } from '@react-three/dre
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
 
+// Define the D-Shape Smile path
+const smileShape = new THREE.Shape();
+smileShape.moveTo(0.12, 0);
+smileShape.absarc(0, 0, 0.12, 0, Math.PI, true); // Semi-circle pointing down
+smileShape.lineTo(0.12, 0); // Close the top flat edge
+
 type BotState = 'idle' | 'listening' | 'speaking' | 'thinking';
 
 interface Assistant3DBotProps {
@@ -29,9 +35,9 @@ interface BotHeadProps {
 
 const BotHead: React.FC<BotHeadProps> = ({ state, mousePosition }) => {
     const groupRef = useRef<THREE.Group>(null);
-    const leftEyeRef = useRef<THREE.Mesh>(null);
-    const rightEyeRef = useRef<THREE.Mesh>(null);
-    const mouthRef = useRef<THREE.Mesh>(null);
+    const leftEyeRef = useRef<THREE.Group>(null);
+    const rightEyeRef = useRef<THREE.Group>(null);
+    const mouthRef = useRef<THREE.Group>(null);
 
     // Smooth mouse position for natural movement
     const smoothMouse = useRef({ x: 0, y: 0 });
@@ -82,52 +88,90 @@ const BotHead: React.FC<BotHeadProps> = ({ state, mousePosition }) => {
         // State-specific animations
         switch (state) {
             case 'listening':
-                // Attentive pose with mouse following
-                groupRef.current.position.y = floatY;
-                groupRef.current.rotation.x = Math.sin(t * 2) * 0.05 + 0.12 + smoothMouse.current.y * 0.25;
-                groupRef.current.rotation.y = Math.sin(t * 1.5) * 0.08 + smoothMouse.current.x * 0.35;
-                groupRef.current.rotation.z = smoothMouse.current.x * -0.08;
-                const listenPulse = 1 + Math.sin(t * 4) * 0.03;
+                // Attentive and eager - leaning in with anticipation
+                groupRef.current.position.y = floatY + Math.sin(t * 3) * 0.02;
+                groupRef.current.position.x = Math.sin(t * 2) * 0.03 + smoothMouse.current.x * 0.05;
+                // Head tilts curiously following mouse
+                groupRef.current.rotation.x = Math.sin(t * 2.5) * 0.08 + 0.1 + smoothMouse.current.y * 0.3;
+                groupRef.current.rotation.y = Math.sin(t * 2) * 0.1 + smoothMouse.current.x * 0.4;
+                groupRef.current.rotation.z = Math.sin(t * 1.5) * 0.05 + smoothMouse.current.x * -0.1;
+                // Breathing pulse
+                const listenPulse = 1 + Math.sin(t * 3) * 0.03;
                 groupRef.current.scale.setScalar(listenPulse);
                 break;
 
             case 'speaking':
-                // Animated speaking - no mouse tracking
-                groupRef.current.position.y = floatY + Math.sin(t * 8) * 0.03;
-                groupRef.current.rotation.x = Math.sin(t * 3) * 0.1;
-                groupRef.current.rotation.y = Math.sin(t * 2) * 0.25;
-                groupRef.current.rotation.z = Math.sin(t * 4) * 0.06;
-                groupRef.current.scale.setScalar(1);
+                // Animated and expressive while talking
+                groupRef.current.position.y = floatY + Math.sin(t * 4) * 0.04;
+                groupRef.current.position.x = Math.sin(t * 2.5) * 0.04;
+                // Energetic nodding and head movements
+                groupRef.current.rotation.x = Math.sin(t * 3) * 0.12 + Math.sin(t * 5) * 0.04;
+                groupRef.current.rotation.y = Math.sin(t * 2) * 0.15 + Math.cos(t * 3) * 0.08;
+                groupRef.current.rotation.z = Math.sin(t * 2.5) * 0.06;
+                // Subtle breathing scale
+                const speakPulse = 1 + Math.sin(t * 3) * 0.02;
+                groupRef.current.scale.setScalar(speakPulse);
                 break;
 
             case 'thinking':
-                // Contemplative with slight mouse awareness
-                groupRef.current.position.y = floatY;
-                groupRef.current.rotation.x = Math.sin(t * 0.5) * 0.1 + smoothMouse.current.y * 0.15;
-                groupRef.current.rotation.y = t * 0.25 + smoothMouse.current.x * 0.2;
-                groupRef.current.rotation.z = 0;
-                groupRef.current.scale.setScalar(1);
+                // Contemplative - looking up/around, slow pondering
+                groupRef.current.position.y = floatY + Math.sin(t * 1) * 0.03;
+                groupRef.current.position.x = Math.sin(t * 0.7) * 0.05;
+                // Looking up and around thoughtfully
+                groupRef.current.rotation.x = -0.15 + Math.sin(t * 0.8) * 0.1;
+                groupRef.current.rotation.y = Math.sin(t * 0.5) * 0.3;
+                groupRef.current.rotation.z = Math.sin(t * 0.6) * 0.05;
+                // Slight shrink when deep in thought
+                const thinkPulse = 1 + Math.sin(t * 1.5) * 0.015;
+                groupRef.current.scale.setScalar(thinkPulse);
                 break;
 
-            default: // idle - SUPER IMPACTFUL mouse tracking!
-                groupRef.current.position.y = floatY + smoothMouse.current.y * 0.05;
-                groupRef.current.position.x = smoothMouse.current.x * 0.08;
-                // Strong head rotation following cursor
-                groupRef.current.rotation.x = smoothMouse.current.y * 0.5;
-                groupRef.current.rotation.y = smoothMouse.current.x * 0.7;
-                groupRef.current.rotation.z = smoothMouse.current.x * -0.12; // Dramatic tilt
-                groupRef.current.scale.setScalar(1);
+            default: // idle - Alive and curious, tracking mouse
+                // Gentle floating with slight sway
+                groupRef.current.position.y = floatY + Math.sin(t * 1.2) * 0.02 + smoothMouse.current.y * 0.04;
+                groupRef.current.position.x = Math.sin(t * 0.8) * 0.03 + smoothMouse.current.x * 0.08;
+                // Curious head movements following cursor
+                groupRef.current.rotation.x = Math.sin(t * 1.5) * 0.05 + smoothMouse.current.y * 0.4;
+                groupRef.current.rotation.y = Math.sin(t * 1) * 0.08 + smoothMouse.current.x * 0.6;
+                groupRef.current.rotation.z = Math.sin(t * 0.7) * 0.03 + smoothMouse.current.x * -0.1;
+                // Gentle breathing
+                const idlePulse = 1 + Math.sin(t * 2) * 0.015;
+                groupRef.current.scale.setScalar(idlePulse);
         }
 
-        // Eye blinking
+        // Eye blinking and expressions
         if (leftEyeRef.current && rightEyeRef.current) {
             const blinkCycle = (t % 4);
-            if (blinkCycle > 3.8 && blinkCycle < 4) {
+
+            if (state === 'speaking') {
+                // EXPRESSIVE speaking face!
+                // Eyes move around expressively while talking
+                const eyeLookX = Math.sin(t * 1.5) * 0.02;
+                const eyeLookY = Math.sin(t * 2) * 0.015;
+
+                // Eyebrow raise effect - eyes move up periodically
+                const browRaise = Math.sin(t * 1.2) * 0.02;
+
+                // Dynamic eye widening for emphasis
+                const emphasis = 1.1 + Math.sin(t * 2.5) * 0.15;
+
+                leftEyeRef.current.position.x = -0.3 + eyeLookX;
+                leftEyeRef.current.position.y = 0.1 + eyeLookY + browRaise;
+                leftEyeRef.current.scale.setScalar(emphasis);
+
+                rightEyeRef.current.position.x = 0.3 + eyeLookX;
+                rightEyeRef.current.position.y = 0.1 + eyeLookY + browRaise;
+                rightEyeRef.current.scale.setScalar(emphasis);
+
+            } else if (blinkCycle > 3.8 && blinkCycle < 4) {
+                // Normal blinking
                 leftEyeRef.current.scale.y = 0.1;
                 rightEyeRef.current.scale.y = 0.1;
             } else {
                 leftEyeRef.current.scale.y = 1;
                 rightEyeRef.current.scale.y = 1;
+                leftEyeRef.current.scale.x = 1;
+                rightEyeRef.current.scale.x = 1;
             }
 
             // Eyes follow mouse when idle or listening
@@ -138,7 +182,7 @@ const BotHead: React.FC<BotHeadProps> = ({ state, mousePosition }) => {
                 leftEyeRef.current.position.y = 0.1 + eyeOffsetY;
                 rightEyeRef.current.position.x = 0.3 + eyeOffsetX;
                 rightEyeRef.current.position.y = 0.1 + eyeOffsetY;
-            } else {
+            } else if (state !== 'speaking') {
                 leftEyeRef.current.position.x = -0.3;
                 leftEyeRef.current.position.y = 0.1;
                 rightEyeRef.current.position.x = 0.3;
@@ -148,15 +192,26 @@ const BotHead: React.FC<BotHeadProps> = ({ state, mousePosition }) => {
 
         // Mouth animation
         if (mouthRef.current) {
+            // Base position for the top lip (origin of the D-shape)
+            const topLipY = -0.2;
+
             if (state === 'speaking') {
-                mouthRef.current.scale.y = 0.4 + Math.abs(Math.sin(t * 12)) * 0.6;
-                mouthRef.current.scale.x = 1 + Math.sin(t * 8) * 0.1;
+                // Happy talking - D-shape stretches vertically
+                const openClose = 0.8 + Math.sin(t * 16) * 0.4;
+                const mouthWidth = 1 + Math.sin(t * 3) * 0.1;
+                mouthRef.current.scale.y = openClose;
+                mouthRef.current.scale.x = mouthWidth;
+                mouthRef.current.position.y = topLipY + Math.sin(t * 2) * 0.01;
             } else if (state === 'listening') {
+                // Slight smile (thin D)
                 mouthRef.current.scale.y = 0.4;
-                mouthRef.current.scale.x = 1.1;
+                mouthRef.current.scale.x = 0.9;
+                mouthRef.current.position.y = topLipY;
             } else {
-                mouthRef.current.scale.y = 0.3;
+                // Resting smile (visible D)
+                mouthRef.current.scale.y = 0.5;
                 mouthRef.current.scale.x = 1;
+                mouthRef.current.position.y = topLipY;
             }
         }
     });
@@ -194,45 +249,92 @@ const BotHead: React.FC<BotHeadProps> = ({ state, mousePosition }) => {
             </RoundedBox>
 
             {/* Left Eye */}
-            <Sphere
-                ref={leftEyeRef}
-                args={[0.15]}
-                position={[-0.3, 0.1, 0.7]}
-            >
-                <meshStandardMaterial
-                    color={colors.eyes}
-                    emissive={colors.glow}
-                    emissiveIntensity={0.3}
-                />
-            </Sphere>
+            <group ref={leftEyeRef} position={[-0.3, 0.1, 0.7]}>
+                {/* Eye Socket/Rim for depth */}
+                <mesh position={[0, 0, -0.02]} rotation={[Math.PI / 2, 0, 0]}>
+                    <cylinderGeometry args={[0.17, 0.17, 0.05, 32]} />
+                    <meshStandardMaterial color="#0f172a" roughness={1} />
+                </mesh>
+                {/* Eye white - Glossy */}
+                <Sphere args={[0.15]}>
+                    <meshPhysicalMaterial
+                        color="#ffffff"
+                        roughness={0.2}
+                        metalness={0.1}
+                        clearcoat={1}
+                        clearcoatRoughness={0}
+                    />
+                </Sphere>
+                {/* Pupil - deep black */}
+                <Sphere args={[0.075]} position={[0, 0, 0.12]}>
+                    <meshStandardMaterial color="#000000" roughness={0} />
+                </Sphere>
+                {/* Eye shine - bright reflection */}
+                <Sphere args={[0.025]} position={[0.04, 0.04, 0.145]}>
+                    <meshBasicMaterial color="#ffffff" />
+                </Sphere>
+            </group>
 
             {/* Right Eye */}
-            <Sphere
-                ref={rightEyeRef}
-                args={[0.15]}
-                position={[0.3, 0.1, 0.7]}
-            >
-                <meshStandardMaterial
-                    color={colors.eyes}
-                    emissive={colors.glow}
-                    emissiveIntensity={0.3}
-                />
-            </Sphere>
+            <group ref={rightEyeRef} position={[0.3, 0.1, 0.7]}>
+                {/* Eye Socket/Rim */}
+                <mesh position={[0, 0, -0.02]} rotation={[Math.PI / 2, 0, 0]}>
+                    <cylinderGeometry args={[0.17, 0.17, 0.05, 32]} />
+                    <meshStandardMaterial color="#0f172a" roughness={1} />
+                </mesh>
+                {/* Eye white */}
+                <Sphere args={[0.15]}>
+                    <meshPhysicalMaterial
+                        color="#ffffff"
+                        roughness={0.2}
+                        metalness={0.1}
+                        clearcoat={1}
+                        clearcoatRoughness={0}
+                    />
+                </Sphere>
+                {/* Pupil */}
+                <Sphere args={[0.075]} position={[0, 0, 0.12]}>
+                    <meshStandardMaterial color="#000000" roughness={0} />
+                </Sphere>
+                {/* Eye shine */}
+                <Sphere args={[0.025]} position={[0.04, 0.04, 0.145]}>
+                    <meshBasicMaterial color="#ffffff" />
+                </Sphere>
+            </group>
 
-            {/* Mouth */}
-            <RoundedBox
-                ref={mouthRef}
-                args={[0.4, 0.15, 0.05]}
-                radius={0.05}
-                smoothness={2}
-                position={[0, -0.25, 0.7]}
-            >
-                <meshStandardMaterial
-                    color={state === 'speaking' ? colors.glow : '#475569'}
-                    emissive={state === 'speaking' ? colors.glow : '#000000'}
-                    emissiveIntensity={state === 'speaking' ? 1 : 0}
-                />
-            </RoundedBox>
+            {/* Mouth with Teeth - D-Shaped Smile */}
+            <group ref={mouthRef} position={[0, -0.2, 0.7]}>
+                {/* Mouth Rim/Container - Slightly larger */}
+                <mesh position={[0, 0, -0.01]}>
+                    <extrudeGeometry args={[smileShape, { depth: 0.06, bevelEnabled: true, bevelSize: 0.01, bevelThickness: 0.01, steps: 1 }]} />
+                    <meshStandardMaterial
+                        color={state === 'speaking' ? colors.glow : '#334155'}
+                        emissive={state === 'speaking' ? colors.glow : '#000000'}
+                        emissiveIntensity={state === 'speaking' ? 0.4 : 0}
+                    />
+                </mesh>
+
+                {/* Mouth Interior - Dark Hole */}
+                <mesh position={[0, 0, 0.04]}>
+                    {/* Slightly smaller shape for the hole effect */}
+                    <extrudeGeometry args={[
+                        new THREE.Shape()
+                            .moveTo(0.10, 0)
+                            .absarc(0, 0, 0.10, 0, Math.PI, true)
+                            .lineTo(0.10, 0),
+                        { depth: 0.02, bevelEnabled: false }
+                    ]} />
+                    <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
+                </mesh>
+
+                {/* Teeth - White Bar */}
+                <mesh position={[0, -0.015, 0.055]}>
+                    <boxGeometry args={[0.14, 0.03, 0.02]} />
+                    <meshStandardMaterial color="#ffffff" />
+                </mesh>
+
+
+            </group>
 
             {/* Ear panels */}
             <RoundedBox args={[0.1, 0.4, 0.3]} radius={0.05} position={[-0.85, 0, 0]}>
