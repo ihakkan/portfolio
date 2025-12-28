@@ -443,6 +443,149 @@ export const CONTACT_KNOWLEDGE = {
     cta: "Don't hesitate to reach out – Hakkan loves connecting with people who share his passion for technology!",
 };
 
+// ============ PORTFOLIO FEATURES KNOWLEDGE ============
+
+export const PORTFOLIO_FEATURES_KNOWLEDGE = {
+    resume: {
+        location: "You can find Hakkan's resume right on the home section! Look for the **Download CV** button located below the terminal animation. Click it to view or download his complete resume.",
+        shortAnswer: "The resume download button is in the home section, below the terminal. Just click 'Download CV' to get it!",
+        keywords: ['resume', 'cv', 'download', 'curriculum vitae', 'download cv'],
+    },
+
+    terminal: {
+        description: "The portfolio features a cool **terminal animation** in the hero section! It simulates a real terminal interface showing Hakkan's introduction in a developer-style way. It types out text dynamically to give that authentic coding feel.",
+        shortAnswer: "The terminal in the hero section is an animated intro that types out Hakkan's details in a cool terminal/command-line style!",
+        keywords: ['terminal', 'command line', 'cli', 'typing', 'animation', 'hero'],
+    },
+
+    heroImage: {
+        description: "The hero section features an **interactive profile image** with hidden minigames! Try clicking on it multiple times to discover fun Easter eggs. Hakkan added these little surprises to make the portfolio more engaging and fun to explore.",
+        shortAnswer: "The hero image has hidden minigames! Try clicking on Hakkan's profile picture multiple times to discover fun Easter eggs!",
+        keywords: ['hero', 'image', 'minigame', 'minigames', 'easter egg', 'click', 'profile picture', 'photo'],
+    },
+
+    githubStats: {
+        description: "The portfolio includes a **GitHub Stats section** that displays Hakkan's GitHub activity and contributions in real-time! You can see his contribution graph, streak stats, most used programming languages, and overall GitHub profile statistics.",
+        shortAnswer: "The GitHub stats section shows Hakkan's coding activity – contribution graphs, streak stats, and most used languages!",
+        keywords: ['github', 'stats', 'statistics', 'contributions', 'streak', 'activity', 'languages'],
+    },
+
+    navigation: {
+        description: "The portfolio is organized into sections: **Home** (with terminal and hero), **About** (detailed bio), **Experience** (work history), **Projects** (all builds), **Skills** (tech stack), **Education**, **Certifications**, and **Contact**. You can navigate using the navbar or just ask me to take you anywhere!",
+        sections: ['home', 'about', 'experience', 'projects', 'skills', 'education', 'certifications', 'contact'],
+    },
+};
+
+// ============ SECTIONS KNOWLEDGE ============
+
+export const SECTIONS_KNOWLEDGE = {
+    home: {
+        title: "Home Section",
+        description: `The **Home section** is the first thing you see when you visit Hakkan's portfolio. It features:
+
+🖥️ **Terminal Animation** - A cool typing animation that introduces Hakkan in a developer-style command-line interface.
+
+👤 **Profile Image** - Hakkan's photo with hidden Easter egg minigames! Click the image and play fun mini games.
+
+📄 **Download Resume Button** - Right below the terminal, you can download Hakkan's complete resume.
+
+🎯 **Quick Navigation** - Easy access to all other sections of the portfolio.`,
+        speakText: "The home section is the welcome page featuring a terminal animation that types out Hakkan's introduction, his profile picture with hidden minigames if you click it, and a Download CV button to get his resume.",
+    },
+
+    about: {
+        title: "About Section",
+        description: `The **About section** tells you who Hakkan really is:
+
+👨‍💻 **Professional Background** - Full-stack developer and B.Tech Computer Science student.
+
+💡 **What He Does** - Crafts digital experiences using React, Next.js, TypeScript, Node.js, and AI integrations.
+
+🌟 **Key Traits** - Problem solver, team player, creative thinker who delivers quality work on deadlines.
+
+🎯 **Goals** - Building impactful applications that make a real difference.`,
+        speakText: "The about section tells you about Hakkan as a person and developer. He's a full-stack developer studying Computer Science, working with React, Next.js, and AI tools. He's known for being a creative problem solver and team player.",
+    },
+
+    experience: {
+        title: "Experience Section",
+        description: `The **Experience section** showcases Hakkan's professional journey:
+
+🏢 **Current Role** - Full Stack Developer Intern at UDRCRAFTS, working on AI-powered e-commerce solutions.
+
+🤖 **Previous Role** - Software Developer Intern at AIKing Solution, built automated testing frameworks and contributed to team collaboration.
+
+💼 **Key Achievements** - Real-world experience in production codebases, client projects, and professional development practices.`,
+        speakText: "The experience section shows Hakkan's work history. He's currently a Full Stack Developer Intern at UDRCRAFTS building AI-powered solutions. Previously, he worked at AIKing Solution on automated testing frameworks.",
+    },
+
+    projects: {
+        title: "Projects Section",
+        description: `The **Projects section** is where Hakkan's creativity shines! It features ${10} impressive projects:
+
+🤖 **AI-Powered Projects** - MockHick, BuildMyCV, VerifyAI, AluChat
+🎮 **Games & Fun** - Hit-The-Jhatu, Rubik's Cube Solver
+🛠️ **Utility Apps** - ReelXtract, Math-O-Matic
+💬 **Social Apps** - ConfessCode, MemeMate
+
+Each project card shows the tech stack, live demo links, and GitHub repository. Click any project for detailed information!`,
+        speakText: "The projects section showcases Hakkan's builds including AI-powered apps like MockHick and VerifyAI, fun games like the Rubik's Cube Solver, and utility tools. Each project has live demos and source code links.",
+    },
+
+    skills: {
+        title: "Skills Section",
+        description: `The **Skills section** displays Hakkan's technical expertise:
+
+⚛️ **Frontend** - React, Next.js, TypeScript, TailwindCSS, HTML/CSS
+🔧 **Backend** - Node.js, Express, Python, REST APIs
+🗄️ **Databases** - MongoDB, PostgreSQL, MySQL, Firebase
+🤖 **AI/ML Tools** - Gemini API, OpenAI, Hugging Face
+🛠️ **Dev Tools** - Git, Docker, VS Code, Postman
+
+Skills are displayed as interactive cards with proficiency indicators!`,
+        speakText: "The skills section shows Hakkan's tech stack. He's skilled in React and Next.js for frontend, Node.js for backend, databases like MongoDB and PostgreSQL, and AI tools like Gemini and OpenAI APIs.",
+    },
+
+    education: {
+        title: "Education Section",
+        description: `The **Education section** shows Hakkan's academic background:
+
+🎓 **B.Tech in Computer Science** - Currently pursuing at a reputed engineering college.
+
+📚 **Academic Focus** - Strong foundation in programming, data structures, algorithms, and software engineering.
+
+🏆 **Academic Achievements** - Consistent performance with practical project-based learning.`,
+        speakText: "The education section shows Hakkan's academic background. He's currently pursuing B.Tech in Computer Science with a strong foundation in programming and software engineering.",
+    },
+
+    certifications: {
+        title: "Certifications Section",
+        description: `The **Certifications section** displays Hakkan's professional credentials:
+
+☁️ **AWS Cloud Certification** - Cloud computing fundamentals and services.
+🔐 **Palo Alto Security** - Cybersecurity foundations.
+🔷 **Blue Prism RPA** - Robotic Process Automation basics.
+🛡️ **Zscaler Security** - Zero trust security concepts.
+🌐 **MERN Stack** - Full-stack web development certification.
+
+Each certification is from recognized industry providers!`,
+        speakText: "The certifications section shows Hakkan's professional credentials including AWS Cloud, Palo Alto Security, Blue Prism RPA, Zscaler, and MERN Stack certifications.",
+    },
+
+    contact: {
+        title: "Contact Section",
+        description: `The **Contact section** has all the ways to reach Hakkan:
+
+📧 **Email** - hakkanparbej@gmail.com
+🐙 **GitHub** - HakkanShah (check out his code!)
+💼 **LinkedIn** - Connect professionally
+🌐 **Google Developer** - g.dev/hakkan
+
+There's also a contact form if you want to send a direct message!`,
+        speakText: "The contact section has all the ways to reach Hakkan. You can email him at hakkanparbej@gmail.com, find him on GitHub as HakkanShah, or connect on LinkedIn. There's also a contact form for direct messages.",
+    },
+};
+
 // ============ HELPER FUNCTIONS ============
 
 /**

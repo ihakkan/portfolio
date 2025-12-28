@@ -8,6 +8,8 @@ export type IntentType =
     | 'greeting'
     | 'about'
     | 'about_detail'
+    | 'portfolio_overview'
+    | 'section_detail'
     | 'projects'
     | 'project_detail'
     | 'projects_category'
@@ -19,6 +21,7 @@ export type IntentType =
     | 'certifications'
     | 'contact'
     | 'contact_specific'
+    | 'portfolio_feature'
     | 'navigation'
     | 'help'
     | 'thanks'
@@ -208,6 +211,68 @@ const intentPatterns: IntentPattern[] = [
             /detailed\s*(intro|introduction|info)/i,
         ],
         keywords: ['more', 'detail', 'details', 'elaborate', 'describe', 'background', 'full', 'detailed'],
+    },
+
+    // Portfolio Overview (tell me about his/hakkan's portfolio)
+    {
+        intent: 'portfolio_overview',
+        patterns: [
+            /tell\s*(me)?\s*(about)?\s*(his|hakkan'?s?|the)\s*portfolio/i,
+            /what\s*(is|about)\s*(his|hakkan'?s?|the)\s*portfolio/i,
+            /describe\s*(his|hakkan'?s?|the)\s*portfolio/i,
+            /show\s*(me)?\s*(his|hakkan'?s?|the)\s*portfolio/i,
+            /about\s*(his|hakkan'?s?|the)\s*portfolio/i,
+            /explain\s*(his|hakkan'?s?|the)\s*portfolio/i,
+            /what\s*(does|is)\s*(this|the)\s*portfolio\s*(have|contain|include)/i,
+            /portfolio\s*(overview|features|details|tour|walkthrough|summary)/i,
+            /^(his|hakkan'?s?|the)\s*portfolio$/i,
+            // Tour and overview patterns
+            /give\s*(me)?\s*(a)?\s*(portfolio)?\s*(overview|tour|walkthrough)/i,
+            /take\s*(me)?\s*(on)?\s*(a)?\s*(tour|walkthrough)\s*(of)?\s*(the|his)?\s*portfolio/i,
+            /tour\s*(of)?\s*(the|his)?\s*portfolio/i,
+            /walk\s*(me)?\s*through\s*(the|his)?\s*portfolio/i,
+            // Generic portfolio catches
+            /^portfolio$/i,
+            /explore\s*(the|his)?\s*portfolio/i,
+            /what'?s?\s*(in|on)\s*(the|his)?\s*portfolio/i,
+            /tell\s*(me)?\s*(everything)?\s*about\s*(the|this)\s*portfolio/i,
+        ],
+        keywords: ['portfolio overview', 'his portfolio', 'hakkan portfolio', 'the portfolio', 'portfolio features', 'portfolio tour', 'portfolio walkthrough'],
+    },
+
+    // Section Detail (tell me about a specific section)
+    {
+        intent: 'section_detail',
+        patterns: [
+            /tell\s*(me)?\s*(about)?\s*(the)?\s*(home|about|experience|projects?|skills?|education|certifications?|contact)\s*section/i,
+            /what\s*(is|are)?\s*(in)?\s*(the)?\s*(home|about|experience|projects?|skills?|education|certifications?|contact)\s*section/i,
+            /describe\s*(the)?\s*(home|about|experience|projects?|skills?|education|certifications?|contact)\s*section/i,
+            /show\s*(me)?\s*(the)?\s*(home|about|experience|projects?|skills?|education|certifications?|contact)\s*section/i,
+            /(home|about|experience|projects?|skills?|education|certifications?|contact)\s*section\s*(details?|info|overview)/i,
+            /what'?s?\s*(in|on)\s*(the)?\s*(home|about|experience|projects?|skills?|education|certifications?|contact)\s*section/i,
+        ],
+        keywords: ['home section', 'about section', 'experience section', 'projects section', 'skills section', 'education section', 'certifications section', 'contact section'],
+        extractParams: (input: string): Record<string, string> => {
+            const normalized = normalizeInput(input);
+            // Match section names that appear with "section" keyword nearby
+            const sectionPatterns = [
+                { name: 'projects', patterns: ['project section', 'projects section'] },
+                { name: 'skills', patterns: ['skill section', 'skills section'] },
+                { name: 'certifications', patterns: ['certification section', 'certifications section'] },
+                { name: 'home', patterns: ['home section'] },
+                { name: 'about', patterns: ['about section'] },
+                { name: 'experience', patterns: ['experience section'] },
+                { name: 'education', patterns: ['education section'] },
+                { name: 'contact', patterns: ['contact section'] },
+            ];
+
+            for (const { name, patterns } of sectionPatterns) {
+                if (patterns.some(p => normalized.includes(p))) {
+                    return { section: name };
+                }
+            }
+            return {};
+        },
     },
 
     // Projects (list all)
@@ -590,6 +655,54 @@ const intentPatterns: IntentPattern[] = [
                 if (normalized.includes(key)) {
                     return { method: value };
                 }
+            }
+            return {};
+        },
+    },
+
+    // Portfolio Features (resume, terminal, minigames, github stats)
+    {
+        intent: 'portfolio_feature',
+        patterns: [
+            // Resume patterns
+            /where\s*(can\s*i)?\s*(find|get|download|see)\s*(his|hakkan'?s?|the)?\s*(resume|cv)/i,
+            /resume\s*(download|location|button|link)/i,
+            /(his|hakkan'?s?)\s*resume/i,
+            /download\s*(his|hakkan'?s?)?\s*(resume|cv)/i,
+            /how\s*(to|can\s*i)\s*(download|get|see)\s*(his|the)?\s*(resume|cv)/i,
+            // Terminal patterns
+            /what\s*(is|about)\s*(the)?\s*terminal/i,
+            /terminal\s*(animation|feature|section)/i,
+            /hero\s*terminal/i,
+            // Minigame patterns
+            /minigame/i,
+            /mini\s*game/i,
+            /easter\s*egg/i,
+            /hidden\s*(game|feature|surprise)/i,
+            /hero\s*(image|photo|picture)\s*(click|game|minigame)?/i,
+            /click\s*(on)?\s*(the)?\s*(hero|profile)\s*(image|picture|photo)?/i,
+            // GitHub stats patterns
+            /github\s*stats/i,
+            /github\s*(activity|contributions?|streak)/i,
+            /coding\s*(activity|stats|statistics)/i,
+            /contribution\s*(graph|chart|stats)/i,
+        ],
+        keywords: ['resume', 'cv', 'terminal', 'minigame', 'easter egg', 'github stats', 'contribution', 'download cv'],
+        extractParams: (input: string): Record<string, string> => {
+            const normalized = normalizeInput(input);
+            if (normalized.includes('resume') || normalized.includes('cv') || normalized.includes('curriculum')) {
+                return { feature: 'resume' };
+            }
+            if (normalized.includes('terminal') || normalized.includes('typing') || normalized.includes('command line')) {
+                return { feature: 'terminal' };
+            }
+            if (normalized.includes('minigame') || normalized.includes('easter') || normalized.includes('click') ||
+                normalized.includes('hidden') || (normalized.includes('hero') && normalized.includes('image'))) {
+                return { feature: 'minigame' };
+            }
+            if (normalized.includes('github') && (normalized.includes('stats') || normalized.includes('activity') ||
+                normalized.includes('contribution') || normalized.includes('streak'))) {
+                return { feature: 'github' };
             }
             return {};
         },

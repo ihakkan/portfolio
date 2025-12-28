@@ -20,6 +20,8 @@ import {
     EDUCATION_KNOWLEDGE,
     CERTIFICATIONS_KNOWLEDGE,
     CONTACT_KNOWLEDGE,
+    PORTFOLIO_FEATURES_KNOWLEDGE,
+    SECTIONS_KNOWLEDGE,
     findProject,
 } from './knowledge-base';
 
@@ -572,6 +574,52 @@ export const generateResponse = (
             };
         }
 
+        case 'portfolio_overview': {
+            const text = `🌟 **Hakkan's Portfolio Overview**\n\n` +
+                `This portfolio is packed with cool features! Here's what you'll find:\n\n` +
+                `📄 **Resume/CV**\n${PORTFOLIO_FEATURES_KNOWLEDGE.resume.shortAnswer}\n\n` +
+                `💻 **Terminal Animation**\n${PORTFOLIO_FEATURES_KNOWLEDGE.terminal.shortAnswer}\n\n` +
+                `🎮 **Hidden Minigames**\n${PORTFOLIO_FEATURES_KNOWLEDGE.heroImage.shortAnswer}\n\n` +
+                `📊 **GitHub Stats**\n${PORTFOLIO_FEATURES_KNOWLEDGE.githubStats.shortAnswer}\n\n` +
+                `🚀 **${PROJECTS_KNOWLEDGE.length} Projects**\nFrom AI-powered apps to fun games – explore them all in the Projects section!\n\n` +
+                `💡 *Ask me about any specific feature for more details!*`;
+
+            const speakText = `Welcome to Hakkan's portfolio! Let me give you a tour. ` +
+                `First, in the home section, you'll see a cool terminal animation that types out Hakkan's introduction like a real command line. ` +
+                `Right below the terminal, there's a Download CV button where you can get his complete resume. ` +
+                `Here's a fun secret: try clicking on Hakkan's profile picture multiple times to discover hidden Easter egg minigames! ` +
+                `Scroll down and you'll find a GitHub Stats section showing his coding activity, contribution streaks, and most used programming languages. ` +
+                `The portfolio also features ${PROJECTS_KNOWLEDGE.length} amazing projects including AI-powered tools, web apps, and games. ` +
+                `You can explore sections like About, Experience, Skills, Education, and Contact. ` +
+                `Feel free to ask me about any of these in detail!`;
+
+            return {
+                text,
+                speakText,
+                action: { type: 'navigate', target: 'home' },
+            };
+        }
+
+        case 'section_detail': {
+            const sectionName = intent.params.section || 'home';
+            const sectionKey = sectionName as keyof typeof SECTIONS_KNOWLEDGE;
+            const sectionInfo = SECTIONS_KNOWLEDGE[sectionKey];
+
+            if (sectionInfo) {
+                const text = `${sectionInfo.title}\n\n${sectionInfo.description}`;
+                return {
+                    text,
+                    speakText: sectionInfo.speakText,
+                    action: { type: 'navigate', target: sectionName },
+                };
+            }
+
+            return {
+                text: "I can provide details about: Home, About, Experience, Projects, Skills, Education, Certifications, and Contact sections. Which one would you like to know about?",
+                speakText: "Which section would you like to know about? I can tell you about Home, About, Experience, Projects, Skills, Education, Certifications, or Contact.",
+            };
+        }
+
         case 'projects': {
             const text = buildProjectsListResponse(context);
             const projectNames = PROJECTS_KNOWLEDGE.slice(0, 5).map(p => p.name).join(', ');
@@ -718,6 +766,40 @@ export const generateResponse = (
                 text,
                 speakText: optimizeForSpeech(text),
                 action: { type: 'navigate', target: 'contact' },
+            };
+        }
+
+        case 'portfolio_feature': {
+            const feature = intent.params.feature || 'resume';
+            let text = '';
+            let speakText = '';
+
+            switch (feature) {
+                case 'resume':
+                    text = "📄 **Resume/CV**\n\n" + PORTFOLIO_FEATURES_KNOWLEDGE.resume.location;
+                    speakText = PORTFOLIO_FEATURES_KNOWLEDGE.resume.shortAnswer;
+                    break;
+                case 'terminal':
+                    text = "💻 **Terminal Animation**\n\n" + PORTFOLIO_FEATURES_KNOWLEDGE.terminal.description;
+                    speakText = PORTFOLIO_FEATURES_KNOWLEDGE.terminal.shortAnswer;
+                    break;
+                case 'minigame':
+                    text = "🎮 **Hidden Minigames**\n\n" + PORTFOLIO_FEATURES_KNOWLEDGE.heroImage.description;
+                    speakText = PORTFOLIO_FEATURES_KNOWLEDGE.heroImage.shortAnswer;
+                    break;
+                case 'github':
+                    text = "📊 **GitHub Stats**\n\n" + PORTFOLIO_FEATURES_KNOWLEDGE.githubStats.description;
+                    speakText = PORTFOLIO_FEATURES_KNOWLEDGE.githubStats.shortAnswer;
+                    break;
+                default:
+                    text = "This portfolio has cool features! Ask me about the **resume download**, **terminal animation**, **hidden minigames**, or **GitHub stats**!";
+                    speakText = "This portfolio has many cool features! Ask me about the resume, terminal, minigames, or GitHub stats.";
+            }
+
+            return {
+                text,
+                speakText,
+                action: { type: 'navigate', target: 'home' },
             };
         }
 
