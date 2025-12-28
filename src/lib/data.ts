@@ -98,6 +98,17 @@ export const PROJECTS: Project[] = [
     aiHint: 'deepfake detection',
   },
   {
+    title: "Rubik's Cube Solver",
+    description: 'Interactive 3D Rubik\'s Cube with solving capabilities and step-by-step tutorials.',
+    longDescription: "An interactive 3D Rubik's Cube application featuring Play Mode with smooth animations and keyboard shortcuts, Learn Mode with a 7-step layer-by-layer tutorial, and Solve Mode where you can paint your cube state and get a CFOP-based solution. Built with vanilla JavaScript and Three.js, featuring a modern dark theme with starfield background, responsive design, and sound effects.",
+    why: "I wanted to combine my love for puzzles with 3D graphics programming. This project allowed me to dive deep into Three.js for rendering, implement complex solving algorithms (CFOP method), and create an engaging tutorial system to help others learn how to solve the cube step-by-step.",
+    thumbnail: '/project-images/cubesolver.png',
+    tags: ['JavaScript', 'Three.js', 'HTML', 'CSS', 'Web Audio API'],
+    liveUrl: 'https://hakkanshah.github.io/R-Cube-Solver/',
+    repoUrl: 'https://github.com/HakkanShah/R-Cube-Solver',
+    aiHint: 'rubik cube solver',
+  },
+  {
     title: 'ConfessCode',
     description: 'An anonymous confession platform ensuring user privacy and secure messaging.',
     longDescription: 'ConfessCode is a secure and anonymous platform where users can freely share their thoughts, confessions, and secrets without revealing their identity. It uses robust authentication and encryption to ensure that all messages are private and untraceable.',
@@ -119,6 +130,7 @@ export const PROJECTS: Project[] = [
     repoUrl: 'https://github.com/HakkanShah/MemeMate',
     aiHint: 'meme dating app',
   },
+
   {
     title: 'AluChat',
     description: 'A dual-personality AI chatbot that can switch between being sweet and savage.',
