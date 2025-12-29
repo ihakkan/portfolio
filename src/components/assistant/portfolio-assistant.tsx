@@ -30,7 +30,7 @@ const Assistant3DBot = dynamic(() => import('./assistant-3d-bot'), {
 type ChatMode = 'text' | 'voice';
 
 const AssistantInner: React.FC = () => {
-    const { isOpen, setIsOpen, state, voiceEnabled } = useAssistant();
+    const { isOpen, setIsOpen, state, voiceEnabled, addMessage } = useAssistant();
     const [isMinimized, setIsMinimized] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [chatMode, setChatMode] = useState<ChatMode>('voice');
@@ -106,6 +106,71 @@ const AssistantInner: React.FC = () => {
             () => setOverrideState('speaking') // onStart
         );
     };
+
+    // Auto-Greeting Sequence
+    // Auto-Greeting Sequence
+    const [showWelcomeText, setShowWelcomeText] = useState(false);
+
+    useEffect(() => {
+        const hasGreeted = sessionStorage.getItem('hakkan_assistant_welcome_shown');
+        if (hasGreeted) return;
+
+        const handleInteraction = () => {
+            if (sessionStorage.getItem('hakkan_assistant_welcome_shown')) return;
+            sessionStorage.setItem('hakkan_assistant_welcome_shown', 'true');
+
+            setIsOpen(true);
+            setShowWelcomeText(true);
+
+            setTimeout(() => {
+                const messageText = "Hello! Welcome to Hakkan's portfolio. You can find his latest projects, technical skills, and professional experience here. I'm his AI assistant, ready to help. Just ping me for anything you want to ask further!";
+
+                addMessage({
+                    role: 'assistant',
+                    content: messageText,
+                });
+
+                if (voiceEnabled) {
+                    const startTime = Date.now();
+                    speak(
+                        messageText,
+                        () => {
+                            setShowWelcomeText(false);
+                            const elapsed = Date.now() - startTime;
+                            const waitTime = elapsed < 1000 ? 8000 : 1000;
+
+                            setTimeout(() => {
+                                setIsOpen(false);
+                                setOverrideState(null);
+                            }, waitTime);
+                        },
+                        () => {
+                            setOverrideState('speaking');
+                        }
+                    );
+                } else {
+                    setTimeout(() => {
+                        setShowWelcomeText(false);
+                        setIsOpen(false);
+                    }, 8000);
+                }
+            }, 500);
+
+            window.removeEventListener('click', handleInteraction);
+            window.removeEventListener('keydown', handleInteraction);
+            window.removeEventListener('touchstart', handleInteraction);
+        };
+
+        window.addEventListener('click', handleInteraction);
+        window.addEventListener('keydown', handleInteraction);
+        window.addEventListener('touchstart', handleInteraction);
+
+        return () => {
+            window.removeEventListener('click', handleInteraction);
+            window.removeEventListener('keydown', handleInteraction);
+            window.removeEventListener('touchstart', handleInteraction);
+        };
+    }, [voiceEnabled, setIsOpen, speak, addMessage]);
 
     // Check for mobile
     useEffect(() => {
@@ -330,6 +395,27 @@ const AssistantInner: React.FC = () => {
                                                     className="w-64 h-64 md:w-72 md:h-72"
                                                 />
                                             </div>
+
+                                            {/* Welcome Text Overlay */}
+                                            <AnimatePresence>
+                                                {showWelcomeText && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 1.5, filter: 'blur(10px)' }}
+                                                        transition={{ type: 'spring', duration: 0.8 }}
+                                                        className="absolute bottom-2 left-0 right-0 z-20 flex justify-center pointer-events-none"
+                                                    >
+                                                        <div className="relative">
+                                                            <h2 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-accent drop-shadow-2xl animate-pulse">
+                                                                Hello!
+                                                            </h2>
+                                                            <Sparkles className="absolute -top-4 -right-6 w-8 h-8 text-yellow-400 animate-bounce" />
+                                                            <Sparkles className="absolute -bottom-2 -left-6 w-6 h-6 text-purple-400 animate-pulse delay-100" />
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
 
                                         {/* Voice Controls Section */}

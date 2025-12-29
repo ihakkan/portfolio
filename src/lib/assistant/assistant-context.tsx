@@ -52,6 +52,7 @@ interface AssistantContextType {
     setVoiceEnabled: (enabled: boolean) => void;
     setIsOpen: (open: boolean) => void;
     clearMessages: () => void;
+    addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
 }
 
 // ============ Context ============
@@ -78,15 +79,6 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setVoiceSupported(isVoiceSupported());
         preloadVoices();
     }, []);
-
-    // Show welcome message when opened for the first time
-    useEffect(() => {
-        if (isOpen && !hasShownWelcome) {
-            const welcome = getWelcomeMessage();
-            addAssistantMessage(welcome);
-            setHasShownWelcome(true);
-        }
-    }, [isOpen, hasShownWelcome]);
 
     // Helper to generate unique ID
     const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -144,6 +136,16 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return message;
     }, [voiceEnabled]);
 
+    // Expose generic addMessage
+    const addMessage = useCallback((message: Omit<Message, 'id' | 'timestamp'>) => {
+        const newMessage: Message = {
+            id: generateId(),
+            timestamp: Date.now(),
+            ...message
+        };
+        setMessages((prev) => [...prev, newMessage]);
+    }, []);
+
     // Add system/error message (for voice errors, etc.)
     const addSystemMessage = useCallback((content: string, messageType: 'error' | 'info' = 'info') => {
         const message: Message = {
@@ -156,6 +158,17 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setMessages((prev) => [...prev, message]);
         return message;
     }, []);
+
+    // Show welcome message when opened for the first time
+    // Needs to use internal addAssistantMessage or generic one?
+    // Using addAssistantMessage is better as it handles internal logic
+    useEffect(() => {
+        if (isOpen && !hasShownWelcome) {
+            const welcome = getWelcomeMessage();
+            addAssistantMessage(welcome);
+            setHasShownWelcome(true);
+        }
+    }, [isOpen, hasShownWelcome, addAssistantMessage]);
 
     // Process user input with conversation context
     const processInput = useCallback((text: string) => {
@@ -303,6 +316,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setVoiceEnabled,
         setIsOpen,
         clearMessages,
+        addMessage,
     };
 
     return (
