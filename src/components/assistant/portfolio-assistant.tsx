@@ -48,13 +48,18 @@ const AssistantInner: React.FC = () => {
 
     // Hover Voice Response
     const lastHoverTime = useRef(0);
-    const handleHoverSpeak = (text: string) => {
+    const spokenHoverIds = useRef<Set<string>>(new Set());
+
+    const handleHoverSpeak = (id: string, text: string) => {
         if (!voiceEnabled) return;
+        if (spokenHoverIds.current.has(id)) return; // Already spoken this session
+
         const now = Date.now();
         if (now - lastHoverTime.current < 2000) return; // 2s cooldown
         if (state === 'speaking' || overrideState === 'speaking') return; // Don't interrupt
 
         lastHoverTime.current = now;
+        spokenHoverIds.current.add(id);
         speak(text);
     };
 
@@ -245,7 +250,7 @@ const AssistantInner: React.FC = () => {
                                         onClick={() => setIsMinimized(!isMinimized)}
                                         className="h-8 w-8"
                                         title={isMinimized ? 'Expand' : 'Minimize'}
-                                        onMouseEnter={() => handleHoverSpeak("Need some space? You can minimize me here.")}
+                                        onMouseEnter={() => handleHoverSpeak('minimize', "Need some space? You can minimize me here.")}
                                     >
                                         <Minimize2 className="w-4 h-4" />
                                     </Button>
@@ -256,7 +261,7 @@ const AssistantInner: React.FC = () => {
                                     onClick={() => setIsOpen(false)}
                                     className="h-8 w-8"
                                     title="Close"
-                                    onMouseEnter={() => handleHoverSpeak("Click here to close the assistant. I'll be here when you need me!")}
+                                    onMouseEnter={() => handleHoverSpeak('close', "Click here to close the assistant. I'll be here when you need me!")}
                                 >
                                     <X className="w-4 h-4" />
                                 </Button>
@@ -268,7 +273,7 @@ const AssistantInner: React.FC = () => {
                             <div className="flex border-b border-border bg-muted/10">
                                 <button
                                     onClick={() => setChatMode('voice')}
-                                    onMouseEnter={() => handleHoverSpeak("Voice mode to talk to me directly.")}
+                                    onMouseEnter={() => handleHoverSpeak('tab-voice', "Voice mode to talk to me directly.")}
                                     className={cn(
                                         'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all',
                                         chatMode === 'voice'
@@ -281,7 +286,7 @@ const AssistantInner: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setChatMode('text')}
-                                    onMouseEnter={() => handleHoverSpeak("Prefer typing? Switch to text mode here.")}
+                                    onMouseEnter={() => handleHoverSpeak('tab-text', "Prefer typing? Switch to text mode here.")}
                                     className={cn(
                                         'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all',
                                         chatMode === 'text'
