@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { MessageCircle, X, Minimize2, Sparkles, MessageSquareText, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AssistantProvider, useAssistant, speak } from '@/lib/assistant';
@@ -30,10 +30,12 @@ const Assistant3DBot = dynamic(() => import('./assistant-3d-bot'), {
 type ChatMode = 'text' | 'voice';
 
 const AssistantInner: React.FC = () => {
-    const { isOpen, setIsOpen, state, voiceEnabled, addMessage } = useAssistant();
+    const { isOpen, setIsOpen, state, voiceEnabled, addMessage, caption } = useAssistant();
     const [isMinimized, setIsMinimized] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [chatMode, setChatMode] = useState<ChatMode>('voice');
+    const dragControls = useDragControls();
+    const constraintsRef = useRef(null);
 
     // Local state to override global state for easter eggs (animating without chat context)
     const [overrideState, setOverrideState] = useState<AssistantState | null>(null);
@@ -46,24 +48,12 @@ const AssistantInner: React.FC = () => {
     const shakeThreshold = 700; // Pixels moved in 700ms
     const shakeCheckInterval = 500;
 
-    // Hover Voice Response
-    const lastHoverTime = useRef(0);
-    const spokenHoverIds = useRef<Set<string>>(new Set());
-
-    const handleHoverSpeak = (id: string, text: string) => {
-        if (!voiceEnabled) return;
-        if (spokenHoverIds.current.has(id)) return; // Already spoken this session
-
-        const now = Date.now();
-        if (now - lastHoverTime.current < 2000) return; // 2s cooldown
-        if (state === 'speaking' || overrideState === 'speaking') return; // Don't interrupt
-
-        lastHoverTime.current = now;
-        spokenHoverIds.current.add(id);
-        speak(text);
-    };
-
     const handleBotMouseMove = (e: React.MouseEvent) => {
+        // Don't process mouse events during speaking/thinking to prevent interruptions
+        if (state === 'speaking' || state === 'thinking' || overrideState === 'speaking') {
+            return;
+        }
+
         // Track movement
         const currentPos = { x: e.clientX, y: e.clientY };
         const dist = Math.abs(currentPos.x - lastMousePos.current.x) + Math.abs(currentPos.y - lastMousePos.current.y);
@@ -269,169 +259,260 @@ const AssistantInner: React.FC = () => {
             {/* Chat Panel */}
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
-                        initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9, x: 20 }}
-                        animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, x: 0 }}
-                        exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9, x: 20 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className={cn(
-                            'fixed z-50 bg-background/95 backdrop-blur-xl border-2 border-foreground shadow-2xl',
-                            'flex flex-col overflow-hidden no-click-effect',
-                            isMobile
-                                ? 'inset-0 rounded-none'
-                                : isMinimized
-                                    ? 'bottom-6 right-6 w-80 h-16 rounded-2xl'
-                                    : 'bottom-6 right-6 w-[400px] h-[600px] max-h-[80vh] rounded-2xl'
+                    <>
+                        {/* Constraints Wrapper for Desktop Dragging */}
+                        {!isMobile && (
+                            <div ref={constraintsRef} className="fixed inset-4 pointer-events-none z-40" />
                         )}
-                    >
-                        {/* Header */}
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
-                            <div className="flex items-center gap-3">
-                                {/* 3D Bot mini avatar with online indicator */}
-                                <div className="relative">
-                                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-primary/30 flex items-center justify-center">
-                                        <Assistant3DBot state={state} size="sm" className="w-12 h-12 scale-110" />
-                                    </div>
-                                    {/* Online indicator dot */}
-                                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background">
-                                        <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
-                                    </span>
+                        <motion.div
+                            key="assistant-panel"
+                            drag={!isMobile}
+                            dragListener={false}
+                            dragControls={dragControls}
+                            dragConstraints={constraintsRef}
+                            dragElastic={0.05}
+                            dragMomentum={false}
+                            initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9, x: 20 }}
+                            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, x: 0 }}
+                            exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.9, x: 20 }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 24 }} // Smoother spring for mobile sheet
+                            className={cn(
+                                'fixed z-50 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden',
+                                'flex flex-col no-click-effect',
+                                isMobile
+                                    ? 'bottom-0 left-0 right-0 h-[92dvh] rounded-t-[2rem] border-t-2 border-l-0 border-r-0 border-primary/20' // Bottom sheet look
+                                    : isMinimized
+                                        ? 'bottom-6 right-6 w-80 h-16 rounded-2xl border-2 border-foreground'
+                                        : 'bottom-6 right-6 w-[400px] h-[600px] max-h-[80vh] rounded-2xl border-2 border-foreground'
+                            )}
+                        >
+                            {/* Mobile Drag Handle Visual */}
+                            {isMobile && (
+                                <div className="w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing" onClick={() => setIsOpen(false)}>
+                                    <div className="w-12 h-1.5 rounded-full bg-muted-foreground/30" />
                                 </div>
-                                <div>
-                                    <h3 className="text-sm font-semibold">
-                                        Hakkan&apos;s Assistant
-                                    </h3>
-                                    <p className="text-[10px] text-muted-foreground capitalize">
-                                        {state === 'idle' ? 'Online' : state}
-                                    </p>
-                                </div>
-                            </div>
+                            )}
 
-                            <div className="flex items-center gap-1">
-                                {!isMobile && (
+                            {/* Header */}
+                            <div
+                                onPointerDown={(e) => {
+                                    if (!isMobile) dragControls.start(e);
+                                }}
+                                className={cn(
+                                    "flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30 select-none",
+                                    isMobile && "pt-1", // Adjust padding since we have the handle
+                                    !isMobile && "cursor-move"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {/* 3D Bot mini avatar with online indicator */}
+                                    <div className="relative">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-primary/30 flex items-center justify-center">
+                                            <Assistant3DBot state={state} size="sm" className="w-12 h-12 scale-110" />
+                                        </div>
+                                        {/* Online indicator dot */}
+                                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background">
+                                            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                                            Hakkan&apos;s Assistant
+                                            <span className="text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded-md border border-amber-500/20 whitespace-nowrap">
+                                                In Development
+                                            </span>
+                                        </h3>
+                                        <p className="text-[10px] text-muted-foreground capitalize">
+                                            {state === 'idle' ? 'Online' : state}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                    {!isMobile && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setIsMinimized(!isMinimized)}
+                                            className="h-8 w-8"
+                                            title={isMinimized ? 'Expand' : 'Minimize'}
+                                            disabled={state === 'speaking' || state === 'thinking'}
+                                        >
+                                            <Minimize2 className="w-4 h-4" />
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => setIsMinimized(!isMinimized)}
+                                        onClick={() => setIsOpen(false)}
                                         className="h-8 w-8"
-                                        title={isMinimized ? 'Expand' : 'Minimize'}
-                                        onMouseEnter={() => handleHoverSpeak('minimize', "Need some space? You can minimize me here.")}
+                                        title="Close"
+                                        disabled={state === 'speaking' || state === 'thinking'}
                                     >
-                                        <Minimize2 className="w-4 h-4" />
+                                        <X className="w-4 h-4" />
                                     </Button>
-                                )}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setIsOpen(false)}
-                                    className="h-8 w-8"
-                                    title="Close"
-                                    onMouseEnter={() => handleHoverSpeak('close', "Click here to close the assistant. I'll be here when you need me!")}
-                                >
-                                    <X className="w-4 h-4" />
-                                </Button>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Mode Tabs */}
-                        {!isMinimized && (
-                            <div className="flex border-b border-border bg-muted/10">
-                                <button
-                                    onClick={() => setChatMode('voice')}
-                                    onMouseEnter={() => handleHoverSpeak('tab-voice', "Voice mode to talk to me directly.")}
-                                    className={cn(
-                                        'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all',
-                                        chatMode === 'voice'
-                                            ? 'text-primary border-b-2 border-primary bg-primary/5'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                                    )}
-                                >
-                                    <Mic className="w-4 h-4" />
-                                    <span>Voice</span>
-                                </button>
-                                <button
-                                    onClick={() => setChatMode('text')}
-                                    onMouseEnter={() => handleHoverSpeak('tab-text', "Prefer typing? Switch to text mode here.")}
-                                    className={cn(
-                                        'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all',
-                                        chatMode === 'text'
-                                            ? 'text-primary border-b-2 border-primary bg-primary/5'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                                    )}
-                                >
-                                    <MessageSquareText className="w-4 h-4" />
-                                    <span>Text</span>
-                                </button>
-                            </div>
-                        )}
+                            {/* Mode Tabs */}
+                            {!isMinimized && (
+                                <div className="flex border-b border-border bg-muted/10">
+                                    <button
+                                        onClick={() => {
+                                            if (state !== 'speaking' && state !== 'thinking') {
+                                                setChatMode('voice');
+                                            }
+                                        }}
+                                        disabled={state === 'speaking' || state === 'thinking'}
+                                        className={cn(
+                                            'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all',
+                                            chatMode === 'voice'
+                                                ? 'text-primary border-b-2 border-primary bg-primary/5'
+                                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/30',
+                                            (state === 'speaking' || state === 'thinking') && 'opacity-50 cursor-not-allowed'
+                                        )}
+                                    >
+                                        <Mic className="w-4 h-4" />
+                                        <span>Voice</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (state !== 'speaking' && state !== 'thinking') {
+                                                setChatMode('text');
+                                            }
+                                        }}
+                                        disabled={state === 'speaking' || state === 'thinking'}
+                                        className={cn(
+                                            'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all',
+                                            chatMode === 'text'
+                                                ? 'text-primary border-b-2 border-primary bg-primary/5'
+                                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/30',
+                                            (state === 'speaking' || state === 'thinking') && 'opacity-50 cursor-not-allowed'
+                                        )}
+                                    >
+                                        <MessageSquareText className="w-4 h-4" />
+                                        <span>Text</span>
+                                    </button>
+                                </div>
+                            )}
 
-                        {/* Content */}
-                        {!isMinimized && (
-                            <div className="flex flex-1 overflow-hidden">
-                                {/* Voice Mode: 3D Bot as centerpiece */}
-                                {chatMode === 'voice' ? (
-                                    <div className="flex-1 flex flex-col">
-                                        {/* 3D Bot - Main Attraction */}
-                                        <div
-                                            className="flex-1 flex items-center justify-center bg-gradient-to-b from-muted/10 to-background relative overflow-hidden"
-                                            onMouseMove={handleBotMouseMove}
-                                        >
-                                            {/* Background glow effect */}
-                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                <div className={cn(
-                                                    'w-48 h-48 rounded-full blur-3xl transition-all duration-500',
-                                                    state === 'listening' ? 'bg-primary/20' :
-                                                        state === 'speaking' ? 'bg-accent/20' :
-                                                            state === 'thinking' ? 'bg-amber-500/20' :
-                                                                'bg-primary/10'
-                                                )} />
-                                            </div>
-
-                                            {/* 3D Bot */}
-                                            <div className="relative z-10">
-                                                <Assistant3DBot
-                                                    state={overrideState || state}
-                                                    size="xl"
-                                                    className="w-64 h-64 md:w-72 md:h-72"
-                                                />
-                                            </div>
-
-                                            {/* Welcome Text Overlay */}
-                                            <AnimatePresence>
-                                                {showWelcomeText && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                        exit={{ opacity: 0, scale: 1.5, filter: 'blur(10px)' }}
-                                                        transition={{ type: 'spring', duration: 0.8 }}
-                                                        className="absolute bottom-2 left-0 right-0 z-20 flex justify-center pointer-events-none"
-                                                    >
-                                                        <div className="relative">
-                                                            <h2 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-accent drop-shadow-2xl animate-pulse">
-                                                                Hello!
-                                                            </h2>
-                                                            <Sparkles className="absolute -top-4 -right-6 w-8 h-8 text-yellow-400 animate-bounce" />
-                                                            <Sparkles className="absolute -bottom-2 -left-6 w-6 h-6 text-purple-400 animate-pulse delay-100" />
-                                                        </div>
-                                                    </motion.div>
+                            {/* Content */}
+                            {!isMinimized && (
+                                <div className="flex flex-1 overflow-hidden">
+                                    {/* Voice Mode: 3D Bot as centerpiece */}
+                                    {chatMode === 'voice' ? (
+                                        <div className="flex-1 flex flex-col">
+                                            {/* 3D Bot - Main Attraction */}
+                                            <div
+                                                className={cn(
+                                                    "flex-1 flex items-center justify-center bg-gradient-to-b from-muted/10 to-background relative overflow-hidden",
+                                                    // Disable pointer events during active states
+                                                    (state === 'speaking' || state === 'thinking' || state === 'listening') && 'cursor-default'
                                                 )}
-                                            </AnimatePresence>
-                                        </div>
+                                                onMouseMove={(state === 'speaking' || state === 'thinking' || state === 'listening') ? undefined : handleBotMouseMove}
+                                            >
+                                                {/* Interaction blocker overlay during active states */}
+                                                {(state === 'speaking' || state === 'thinking' || state === 'listening' || overrideState === 'speaking') && (
+                                                    <div
+                                                        className="absolute inset-0 z-50"
+                                                        style={{ pointerEvents: 'all' }}
+                                                        onMouseMove={(e) => e.stopPropagation()}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                        onMouseUp={(e) => e.stopPropagation()}
+                                                    />
+                                                )}
 
-                                        {/* Voice Controls Section */}
-                                        <div className="shrink-0">
+                                                {/* Background glow effect */}
+                                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                    <div className={cn(
+                                                        'w-48 h-48 rounded-full blur-3xl transition-all duration-500',
+                                                        state === 'listening' ? 'bg-primary/20' :
+                                                            state === 'speaking' ? 'bg-accent/20' :
+                                                                state === 'thinking' ? 'bg-amber-500/20' :
+                                                                    'bg-primary/10'
+                                                    )} />
+                                                </div>
+
+                                                {/* 3D Bot - Shifts up when caption appears */}
+                                                <div className={cn(
+                                                    "relative z-10 pointer-events-none transition-transform duration-500 ease-out",
+                                                    caption ? "-translate-y-10 md:-translate-y-12" : ""
+                                                )}>
+                                                    <Assistant3DBot
+                                                        state={overrideState || state}
+                                                        size="xl"
+                                                        className="w-64 h-64 md:w-72 md:h-72"
+                                                    />
+                                                </div>
+
+                                                {/* Live Caption / Subtitles */}
+                                                <AnimatePresence>
+                                                    {caption && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, y: 10 }}
+                                                            className="absolute bottom-2 left-0 right-0 flex justify-center z-40 px-4 pointer-events-none"
+                                                        >
+                                                            <div className={cn(
+                                                                "bg-black/60 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/5 shadow-lg max-w-[90%] md:max-w-[70%] text-center transform transition-all",
+                                                                caption.source === 'user' ? "border-emerald-500/30" : "border-yellow-500/30"
+                                                            )}>
+                                                                <p className={cn(
+                                                                    "text-sm md:text-base font-medium leading-relaxed tracking-wide drop-shadow-md",
+                                                                    // Movie subtitle font style
+                                                                    caption.source === 'user' ? "text-emerald-200 italic" : "text-yellow-50 font-semibold"
+                                                                )}
+                                                                    style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}
+                                                                >
+                                                                    {caption.source === 'assistant' && (
+                                                                        <span className="text-yellow-400 mr-2 text-xs">●</span>
+                                                                    )}
+                                                                    "{caption.text}"
+                                                                </p>
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+
+                                                {/* Welcome Text Overlay */}
+                                                <AnimatePresence>
+                                                    {showWelcomeText && !caption && ( // Hide welcome if caption is showing
+                                                        <motion.div
+                                                            initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                            exit={{ opacity: 0, scale: 1.5, filter: 'blur(10px)' }}
+                                                            transition={{ type: 'spring', duration: 0.8 }}
+                                                            className="absolute bottom-2 left-0 right-0 z-20 flex justify-center pointer-events-none"
+                                                        >
+                                                            <div className="relative">
+                                                                <h2 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-accent drop-shadow-2xl animate-pulse">
+                                                                    Hello!
+                                                                </h2>
+                                                                <Sparkles className="absolute -top-4 -right-6 w-8 h-8 text-yellow-400 animate-bounce" />
+                                                                <Sparkles className="absolute -bottom-2 -left-6 w-6 h-6 text-purple-400 animate-pulse delay-100" />
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+
+                                            {/* Voice Controls Section */}
+                                            <div className="shrink-0">
+                                                <AssistantChat mode={chatMode} />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        /* Text Mode: Full-width chat */
+                                        <div className="flex-1 flex flex-col min-w-0">
                                             <AssistantChat mode={chatMode} />
                                         </div>
-                                    </div>
-                                ) : (
-                                    /* Text Mode: Full-width chat */
-                                    <div className="flex-1 flex flex-col min-w-0">
-                                        <AssistantChat mode={chatMode} />
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </motion.div>
+                                    )}
+                                </div>
+                            )}
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
 

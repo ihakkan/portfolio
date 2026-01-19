@@ -40,6 +40,7 @@ export const NAV_LINKS = [
   { name: 'About', href: '#about' },
   { name: 'Experience', href: '#experience' },
   { name: 'Projects', href: '#projects' },
+  { name: 'GitHub', href: '#github' },
   { name: 'Skills', href: '#skills' },
   { name: 'Education', href: '#education' },
   { name: 'Certifications', href: '#certifications' },
@@ -65,6 +66,17 @@ export type Project = {
 
 export const PROJECTS: Project[] = [
   {
+    title: 'Commit Habit',
+    description: 'A GitHub App that helps developers maintain daily GitHub activity streaks securely without Personal Access Tokens.',
+    longDescription: 'Commit Habit is a free, open-source GitHub App designed to help developers maintain their daily GitHub activity streak. It uses GitHub App OAuth for secure authentication, automatically creates minimal README commits (whitespace changes) on days without activity, and provides smart scheduling that skips days when you have real commits. Features include a beautiful dashboard, daily limits (max 5 commits), email notifications, and Discord webhook analytics integration.',
+    why: 'I built Commit Habit to solve a common developer challenge - maintaining GitHub activity streaks during busy periods. Traditional solutions require Personal Access Tokens which pose security risks. By building a GitHub App instead, I created a more secure, transparent, and user-controllable solution. It also taught me about GitHub App development, OAuth flows, JWT authentication, and cron job scheduling.',
+    thumbnail: '/project-images/commithabit.png',
+    tags: ['Next.js', 'TypeScript', 'Prisma', 'PostgreSQL', 'GitHub API', 'Tailwind CSS', 'Vercel'],
+    liveUrl: 'https://commithabit.vercel.app',
+    repoUrl: 'https://github.com/HakkanShah/commit-habit',
+    aiHint: 'github streak automation',
+  },
+  {
     title: 'MockHick',
     description: 'Voice-Driven AI-powered web app that simulates mock interviews.',
     longDescription: 'MockHick is an innovative, AI-powered web application designed to help users prepare for job interviews. Inspired by the Hindi word "Maukhik" (मौखिक), which means oral or spoken, the app simulates a realistic interview experience. It leverages Gemini AI to dynamically generate questions, provide real-time transcription, and deliver detailed, personalized feedback to help users build confidence and land their dream job.',
@@ -74,6 +86,17 @@ export const PROJECTS: Project[] = [
     liveUrl: 'https://mockhick.vercel.app/',
     repoUrl: 'https://github.com/HakkanShah/mockhick',
     aiHint: 'ai interview coach',
+  },
+  {
+    title: 'Throughput',
+    description: 'A lightweight Windows utility that displays real-time network speed as an always-on-top overlay with on-demand bandwidth speed test.',
+    longDescription: 'Throughput is a lightweight Windows utility that shows real-time network download and upload speeds in a compact, always-on-top overlay. It features auto-detection of active network adapters, minimal CPU usage, and a draggable interface. Additionally, it includes an on-demand speed test that measures actual internet bandwidth with parallel connections, latency testing, and warm-up exclusion for accuracy. Built with WPF and .NET 8, it uses Windows Performance Counters for live monitoring and Cloudflare CDN endpoints for speed tests.',
+    why: 'I built Throughput because I wanted a clean, privacy-focused network monitor that stays out of the way while still being accessible. Most network monitors are either too bloated or require external services. This tool does everything locally with no telemetry, no data collection, and no accounts required.',
+    thumbnail: '/project-images/throughput.png',
+    tags: ['.NET 8', 'WPF', 'C#', 'Windows', 'Performance Counters', 'Inno Setup'],
+    liveUrl: 'https://github.com/HakkanShah/Throughput/releases',
+    repoUrl: 'https://github.com/HakkanShah/Throughput',
+    aiHint: 'network speed monitor',
   },
   {
     title: 'BuildMyCV',

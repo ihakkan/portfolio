@@ -41,7 +41,7 @@ const LANGUAGE_COLORS: Record<string, string> = {
 
 // GitHub achievement badges
 const ACHIEVEMENTS = [
-    { name: 'Pull Shark', img: 'https://github.githubassets.com/assets/pull-shark-default-498c279a747d.png' },
+    { name: 'Pull Shark', img: 'https://github.githubassets.com/assets/pull-shark-default-498c279a747d.png', badge: 'x2' },
     { name: 'YOLO', img: 'https://github.githubassets.com/assets/yolo-default-be0bbff04951.png' },
     { name: 'Quickdraw', img: 'https://github.githubassets.com/assets/quickdraw-default-39c6aec8ff89.png' },
     { name: 'Pair Extraordinaire', img: 'https://user-images.githubusercontent.com/101352977/178841186-98adb2c7-3c39-4e69-8251-09891cbe1983.png' },
@@ -71,11 +71,11 @@ const GitHubActivitySection = () => {
                     { name: 'Python', percentage: 0.21, color: LANGUAGE_COLORS['Python'] },
                 ];
 
-                // Total PRs - update with your actual count
-                const totalPRs = 15;
+                // Total PRs Merged - update with your actual count
+                const totalPRs = 32;
 
                 setStats({
-                    publicRepos: userData.public_repos || 0,
+                    publicRepos: 27,
                     totalPRs,
                     topLanguage: 'TypeScript',
                     languages,
@@ -116,12 +116,12 @@ const GitHubActivitySection = () => {
             icon: Flame,
             label: 'Longest Streak',
             value: '77 days',
-            subtitle: 'Mar 5 - May 20',
+            subtitle: 'Mar 5 - May 20, 2025',
             color: 'text-orange-500'
         },
         {
             icon: GitPullRequest,
-            label: 'Total PRs',
+            label: 'Total PRs Merged',
             value: stats?.totalPRs ?? '...',
             color: 'text-green-500'
         },
@@ -254,6 +254,12 @@ const GitHubActivitySection = () => {
                                         unoptimized
                                         className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-foreground/20 shadow-md"
                                     />
+                                    {/* Badge for multiplier (e.g., x2) */}
+                                    {achievement.badge && (
+                                        <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-full border-2 border-background shadow-md">
+                                            {achievement.badge}
+                                        </div>
+                                    )}
                                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-xs px-2 py-1 rounded whitespace-nowrap z-10">
                                         {achievement.name}
                                     </div>

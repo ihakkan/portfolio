@@ -55,6 +55,27 @@ export interface ProjectKnowledge {
 
 export const PROJECTS_KNOWLEDGE: ProjectKnowledge[] = [
     {
+        name: "Commit Habit",
+        aliases: ["commithabit", "commit habit", "commit-habit", "github streak", "streak automation", "github activity", "green squares"],
+        shortDescription: "A free, open-source GitHub App that helps developers maintain daily GitHub activity streaks securely without Personal Access Tokens.",
+        detailedDescription: `Commit Habit is a secure GitHub App designed to help developers maintain their daily GitHub activity streak. Unlike other solutions that require Personal Access Tokens (PATs), this uses GitHub App OAuth for maximum security.
+
+Key features include:
+• **Secure Authentication**: GitHub App OAuth – no PATs or passwords required
+• **Google OAuth Support**: Alternative sign-in with Google account
+• **Non-destructive Changes**: Only modifies README formatting (whitespace)
+• **Smart Scheduling**: Automatically skips days when you have real commits
+• **Daily Limits**: Maximum 5 automated commits per day per repository
+• **Full Control**: Pause, resume, or uninstall anytime
+• **Activity Dashboard**: Track automation history with beautiful UI
+• **Email Notifications**: Get notified about important events`,
+        whyBuilt: "Hakkan built Commit Habit to solve a common developer challenge – maintaining GitHub activity streaks during busy periods. Traditional solutions require Personal Access Tokens which pose security risks. By building a GitHub App instead, he created a more secure, transparent, and user-controllable solution. It also taught him about GitHub App development, OAuth flows, JWT authentication, and cron job scheduling.",
+        techHighlights: "Built with Next.js 16 and React 19 for the frontend, Prisma ORM with PostgreSQL (Supabase) for the database, GitHub App SDK (Octokit) for API integration, and deployed on Vercel with cron jobs for scheduling.",
+        coolFact: "The app only modifies trailing whitespace in README files – the most minimal, non-destructive change possible while still counting as a valid GitHub contribution!",
+        liveUrl: "https://commithabit.vercel.app",
+        category: "Developer Tool",
+    },
+    {
         name: "MockHick",
         aliases: ["mockhick", "mock hick", "interview app", "ai interview", "maukhik"],
         shortDescription: "An AI-powered mock interview platform that helps users practice and ace their job interviews.",
@@ -70,6 +91,27 @@ Here's what makes it special:
         coolFact: "The speech recognition works so well that users often forget they're talking to an AI!",
         liveUrl: "https://mockhick.vercel.app/",
         category: "AI Application",
+    },
+    {
+        name: "Throughput",
+        aliases: ["throughput", "network speed", "network monitor", "speed test", "bandwidth monitor", "windows utility", "internet speed"],
+        shortDescription: "A lightweight Windows utility that displays real-time network speed as an always-on-top overlay with on-demand bandwidth speed test.",
+        detailedDescription: `Throughput is a privacy-focused Windows network monitoring utility built with .NET 8 and WPF.
+
+Key features include:
+• **Live Network Throughput**: Real-time download/upload speeds with auto-detect adapter
+• **Always-On-Top Overlay**: Compact, draggable floating window that stays visible
+• **On-Demand Speed Test**: Measures actual internet bandwidth using Cloudflare CDN
+• **Dual-Window Design**: Minimal overlay mode + full dashboard with detailed results
+• **Low Resource Usage**: Polls once per second with minimal CPU impact
+• **Privacy First**: No telemetry, no data collection, no accounts required
+
+The speed test measures download, upload, and latency with parallel connections and warm-up exclusion for accurate results.`,
+        whyBuilt: "Hakkan built Throughput because he wanted a clean, privacy-focused network monitor that stays out of the way while still being accessible. Most network monitors are bloated or require external services. This tool does everything locally with zero telemetry.",
+        techHighlights: "Built with .NET 8 and WPF for the Windows desktop app, uses Windows Performance Counters for live network readings, Cloudflare CDN endpoints for speed tests, and Inno Setup for the installer.",
+        coolFact: "The entire app has zero external dependencies for monitoring – it reads directly from Windows Performance Counters and requires no API keys or accounts!",
+        liveUrl: "https://github.com/HakkanShah/Throughput/releases",
+        category: "Desktop Utility",
     },
     {
         name: "BuildMyCV",
@@ -521,15 +563,34 @@ export const SECTIONS_KNOWLEDGE = {
 
     projects: {
         title: "Projects Section",
-        description: `The **Projects section** is where Hakkan's creativity shines! It features ${10} impressive projects:
+        description: `The **Projects section** is where Hakkan's creativity shines! It features 12 impressive projects:
 
 🤖 **AI-Powered Projects** - MockHick, BuildMyCV, VerifyAI, AluChat
 🎮 **Games & Fun** - Hit-The-Jhatu, Rubik's Cube Solver
-🛠️ **Utility Apps** - ReelXtract, Math-O-Matic
+🛠️ **Utility Apps** - ReelXtract, Math-O-Matic, Throughput
 💬 **Social Apps** - ConfessCode, MemeMate
+🔧 **Developer Tools** - Commit Habit, Throughput
 
 Each project card shows the tech stack, live demo links, and GitHub repository. Click any project for detailed information!`,
-        speakText: "The projects section showcases Hakkan's builds including AI-powered apps like MockHick and VerifyAI, fun games like the Rubik's Cube Solver, and utility tools. Each project has live demos and source code links.",
+        speakText: "The projects section showcases Hakkan's 12 builds including AI-powered apps like MockHick and VerifyAI, developer tools like Commit Habit and Throughput, fun games like the Rubik's Cube Solver, and utility tools. Each project has live demos and source code links.",
+    },
+
+    github: {
+        title: "GitHub Activity Section",
+        description: `The **GitHub Activity section** displays Hakkan's coding journey and statistics:
+
+📊 **Contribution Graph** - Visual calendar showing daily coding activity over the past year
+
+🔥 **Stats Overview**:
+- **27 Public Repositories** - Open source projects on GitHub
+- **77 Day Longest Streak** - Consistent daily coding from March to May 2025
+- **32 PRs Merged** - Contributions accepted by maintainers
+- **4 Achievements** - Pull Shark x2, YOLO, Quickdraw, Pair Extraordinaire
+
+💻 **Most Used Languages** - TypeScript, JavaScript, CSS, HTML, Python
+
+📈 **Live Data** - The contribution graph updates automatically from GitHub!`,
+        speakText: "The GitHub Activity section shows Hakkan's coding journey with a contribution graph, 27 public repositories, a 77-day longest streak, 32 merged pull requests, and achievements like Pull Shark. His most used language is TypeScript.",
     },
 
     skills: {

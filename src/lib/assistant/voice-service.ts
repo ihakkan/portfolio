@@ -135,15 +135,49 @@ export const startListening = (
 
         recognition = new SpeechRecognition();
 
-        // Improved settings for better recognition
-        // Using Indian English (en-IN) for better recognition of Indian accents
+        // Multi-language support: Try en-IN first, fallback to en-US for better coverage
+        // This helps with different accents and pronunciations
         recognition.lang = options.lang || 'en-IN';
         recognition.continuous = true; // Keep listening for better results
-        recognition.interimResults = true; // Show partial results
-        recognition.maxAlternatives = 3; // Get multiple alternatives for better accuracy
+        recognition.interimResults = true; // Show partial results for responsiveness
+        recognition.maxAlternatives = 5; // More alternatives for better accuracy
+
+        // Portfolio-specific keywords for better recognition
+        const keywords = [
+            'GitHub', 'projects', 'skills', 'experience', 'education', 'contact',
+            'MockHick', 'Mock Hick', 'Maukhik', 'Mocking',
+            'BuildMyCV', 'Build My CV', 'CV Banao', 'Resume Builder',
+            'VerifyAI', 'Verify AI', 'Deepfake',
+            'Alochat', 'Alu Chat', 'Aloo Chat', 'Chatbot',
+            'ReelXtract', 'Reel Extract', 'Reels',
+            'ConfessCode', 'Confess Code',
+            'MemeMate', 'Meme Mate',
+            'MathOMatic', 'Math O Matic', 'Calculator',
+            'Hit The Jhatu', 'Whack a Mole',
+            'Rubiks Cube', 'Rubik', 'Cube Solver',
+            'Commit Habit', 'Commit', 'Streak',
+            'Throughput', 'Network Speed',
+            'Hakkan', 'Hakan', 'Haken', 'Portfolio', 'Resume',
+            'TypeScript', 'JavaScript', 'React', 'Next.js', 'Node.js',
+            'frontend', 'backend', 'database', 'LinkedIn', 'email',
+            'tell me', 'show me', 'open', 'go to', 'navigate'
+        ];
+
+        // Add speech grammar for portfolio-specific keywords (if supported)
+        if ((window as any).SpeechGrammarList) {
+            const SpeechGrammarList = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
+            const grammarList = new SpeechGrammarList();
+            const grammar = '#JSGF V1.0; grammar portfolio; public <keyword> = ' + keywords.join(' | ') + ' ;';
+            grammarList.addFromString(grammar, 1);
+            recognition.grammars = grammarList;
+        }
+
+        let speechPauseTimeout: NodeJS.Timeout | null = null;
+        let lastInterimTranscript = '';
 
         recognition.onstart = () => {
             isListening = true;
+            lastInterimTranscript = '';
             // Set a timeout to auto-stop if no speech (prevents hanging)
             recognitionTimeout = setTimeout(() => {
                 if (isListening) {
@@ -151,7 +185,7 @@ export const startListening = (
                     const error = getVoiceError('no-speech');
                     onError(error.message, error);
                 }
-            }, 10000); // 10 second timeout
+            }, 15000); // 15 second timeout (increased for longer queries)
         };
 
         recognition.onresult = (event: any) => {
@@ -166,8 +200,26 @@ export const startListening = (
             let interimTranscript = '';
 
             for (let i = event.resultIndex; i < results.length; i++) {
-                const transcript = results[i][0].transcript;
-                if (results[i].isFinal) {
+                const result = results[i];
+                let transcript = result[0].transcript;
+
+                // Smart Selection: Check alternatives for keywords
+                if (result.length > 1) {
+                    for (let j = 1; j < result.length; j++) {
+                        const alt = result[j].transcript;
+                        const hasKeyword = keywords.some(k => alt.toLowerCase().includes(k.toLowerCase()));
+                        const topHasKeyword = keywords.some(k => transcript.toLowerCase().includes(k.toLowerCase()));
+
+                        // If alternative matches a keyword and current top choice doesn't, promote it
+                        if (hasKeyword && !topHasKeyword) {
+                            // console.log(`Promoting alternative: "${alt}" over "${transcript}"`);
+                            transcript = alt;
+                            break;
+                        }
+                    }
+                }
+
+                if (result.isFinal) {
                     finalTranscript += transcript;
                 } else {
                     interimTranscript += transcript;
@@ -176,12 +228,30 @@ export const startListening = (
 
             // Send final result
             if (finalTranscript) {
+                // Clear pause detection
+                if (speechPauseTimeout) {
+                    clearTimeout(speechPauseTimeout);
+                    speechPauseTimeout = null;
+                }
                 onResult(finalTranscript.trim(), true);
                 // Auto-stop after getting final result
                 stopListening();
             } else if (interimTranscript) {
+                lastInterimTranscript = interimTranscript;
                 // Send interim results for UI feedback
                 onResult(interimTranscript, false);
+
+                // Intelligent pause detection: if user pauses for 2 seconds after speaking,
+                // treat the interim result as final (helps with natural speech patterns)
+                if (speechPauseTimeout) {
+                    clearTimeout(speechPauseTimeout);
+                }
+                speechPauseTimeout = setTimeout(() => {
+                    if (isListening && lastInterimTranscript.trim()) {
+                        onResult(lastInterimTranscript.trim(), true);
+                        stopListening();
+                    }
+                }, 2000); // 2 second pause = end of speech
             }
         };
 
@@ -332,14 +402,53 @@ export const speak = (
     cancelSpeaking();
 
     try {
-        const utterance = new SpeechSynthesisUtterance(text);
+        // Preprocess text for better speech output
+        let processedText = text
+            // Clean up markdown formatting
+            .replace(/\*\*/g, '')
+            .replace(/\*/g, '')
+            .replace(/#{1,6}\s/g, '')
+            // Handle common abbreviations
+            .replace(/\bAI\b/g, 'A.I.')
+            .replace(/\bUI\b/g, 'U.I.')
+            .replace(/\bUX\b/g, 'U.X.')
+            .replace(/\bAPI\b/g, 'A.P.I.')
+            .replace(/\bCSS\b/g, 'C.S.S.')
+            .replace(/\bHTML\b/g, 'H.T.M.L.')
+            // Handle project names for better pronunciation
+            .replace(/MockHick/gi, 'Mock Hick')
+            .replace(/BuildMyCV/gi, 'Build My C.V.')
+            .replace(/VerifyAI/gi, 'Verify A.I.')
+            .replace(/AluChat/gi, 'Alu Chat')
+            .replace(/ReelXtract/gi, 'Reel Extract')
+            .replace(/Math-O-Matic/gi, 'Matho-matic')
+            // Clean URLs (they sound bad spoken)
+            .replace(/https?:\/\/[^\s]+/g, 'the link provided')
+            // Clean up emojis
+            .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
+            // Normalize whitespace
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        const utterance = new SpeechSynthesisUtterance(processedText);
         utterance.lang = options.lang || 'en-US';
 
+        // Dynamic rate adjustment based on content length
+        // Shorter responses: slightly slower for clarity
+        // Longer responses: slightly faster to not bore the user
+        const textLength = processedText.length;
+        let dynamicRate = 1.0;
+        if (textLength < 50) {
+            dynamicRate = 0.95; // Short responses: slower, clearer
+        } else if (textLength > 300) {
+            dynamicRate = 1.08; // Long responses: slightly faster
+        } else {
+            dynamicRate = 1.0; // Medium responses: normal speed
+        }
+
         // Cheerful, expressive voice settings
-        // Higher pitch (1.15) for brighter, more cheerful sound
-        // Slightly faster rate (1.0) for energetic delivery
-        utterance.rate = options.voiceRate || 1.0;
-        utterance.pitch = options.voicePitch || 1.15;
+        utterance.rate = options.voiceRate || dynamicRate;
+        utterance.pitch = options.voicePitch || 1.12; // Slightly bright for friendly tone
         utterance.volume = 1.0;
 
         // Use cached voice or find the best one

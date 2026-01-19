@@ -26,6 +26,7 @@ export type IntentType =
     | 'help'
     | 'thanks'
     | 'goodbye'
+    | 'fuzzy_suggestion'
     | 'unknown';
 
 export interface DetectedIntent {
@@ -34,6 +35,10 @@ export interface DetectedIntent {
     params: Record<string, string>;
     originalInput: string;
     suggestedTopics?: string[];
+    // For fuzzy suggestions - "Did you mean X?"
+    suggestedWord?: string;
+    suggestedMatch?: string;
+    suggestedCategory?: 'project' | 'skill' | 'section' | 'contact' | 'keyword';
 }
 
 // ============ Input Normalization ============
@@ -88,26 +93,29 @@ const fuzzyMatchWord = (word: string, targets: string[], threshold = 0.7): { mat
 // ============ Project Names for Detection ============
 
 const PROJECT_NAMES = [
-    'mockhick', 'mock hick', 'maukhik',
-    'buildmycv', 'build my cv', 'cvbanao', 'resume builder', 'cv builder', 'cv maker', 'resume',
-    'verifyai', 'verify ai', 'deepfake detector', 'fake news',
-    'confesscode', 'confess code', 'anonymous',
-    'mememate', 'meme mate', 'meme dating',
-    'aluchat', 'alu chat', 'chatbot',
-    'reelxtract', 'reel xtract', 'reels downloader', 'instagram downloader',
-    'mathomatic', 'math o matic', 'calculator',
-    'hit the jhatu', 'jhatu game', 'whack a mole',
-    'rubik', 'rubiks', 'rubiks cube', 'cube solver', '3d cube', 'r cube solver', 'rcube'
+    'mockhick', 'mock hick', 'maukhik', 'mocking', 'marching', 'mock',
+    'throughput', 'network speed', 'network monitor', 'speed test', 'bandwidth', 'thru put', 'throw put',
+    'buildmycv', 'build my cv', 'cvbanao', 'resume builder', 'cv builder', 'cv maker', 'resume', 'build cv',
+    'verifyai', 'verify ai', 'deepfake detector', 'fake news', 'verified ai', 'verify a i',
+    'confesscode', 'confess code', 'anonymous', 'confidence code',
+    'mememate', 'meme mate', 'meme dating', 'mini mate',
+    'aluchat', 'alu chat', 'chatbot', 'aloo chat', 'allow chat', 'halo chat', 'yellow chat',
+    'reelxtract', 'reel xtract', 'reels downloader', 'instagram downloader', 'real extract', 'reel extract',
+    'mathomatic', 'math o matic', 'calculator', 'math',
+    'hit the jhatu', 'jhatu game', 'whack a mole', 'jatu', 'hit jatu',
+    'rubik', 'rubiks', 'rubiks cube', 'cube solver', '3d cube', 'r cube solver', 'rcube', 'ruby cube', 'cubic',
+    'commit habit', 'commithabit', 'github streak', 'streak automation', 'green squares', 'comet habit', 'comic habit'
 ];
 
 // ============ Project Categories for Detection ============
 
 export const PROJECT_CATEGORIES: Record<string, string[]> = {
     'ai': ['MockHick', 'BuildMyCV', 'VerifyAI', 'AluChat'],
-    'utility': ['ReelXtract', 'Math-O-Matic'],
+    'utility': ['ReelXtract', 'Math-O-Matic', 'Throughput'],
     'game': ['Hit-The-Jhatu', "Rubik's Cube Solver"],
     'social': ['ConfessCode', 'MemeMate'],
     '3d': ["Rubik's Cube Solver"],
+    'developer': ['Commit Habit', 'Throughput'],
 };
 
 // ============ Keyword Extraction for Long Queries ============
@@ -418,6 +426,18 @@ const intentPatterns: IntentPattern[] = [
                 'r cube solver': "Rubik's Cube Solver", 'rcube': "Rubik's Cube Solver", 'r-cube': "Rubik's Cube Solver",
                 'rubik solver': "Rubik's Cube Solver", 'cube puzzle': "Rubik's Cube Solver", 'rubix': "Rubik's Cube Solver",
                 'rubix cube': "Rubik's Cube Solver", 'rubicks': "Rubik's Cube Solver", 'rubicks cube': "Rubik's Cube Solver",
+
+                // Commit Habit - GitHub streak automation
+                'commit habit': 'Commit Habit', 'commithabit': 'Commit Habit', 'commit-habit': 'Commit Habit',
+                'github streak': 'Commit Habit', 'streak automation': 'Commit Habit', 'green squares': 'Commit Habit',
+                'commitabit': 'Commit Habit', 'comit habit': 'Commit Habit', 'committ habit': 'Commit Habit',
+                'github activity': 'Commit Habit', 'streak app': 'Commit Habit',
+
+                // Throughput - Network speed monitor
+                'throughput': 'Throughput', 'thruput': 'Throughput', 'through put': 'Throughput',
+                'network speed': 'Throughput', 'network monitor': 'Throughput', 'speed test': 'Throughput',
+                'bandwidth monitor': 'Throughput', 'bandwidth': 'Throughput', 'speed monitor': 'Throughput',
+                'internet speed': 'Throughput', 'thrruput': 'Throughput',
             };
 
             for (const [key, value] of Object.entries(projectMappings)) {
@@ -721,7 +741,7 @@ const intentPatterns: IntentPattern[] = [
         ],
         keywords: [],
         extractParams: (input: string): Record<string, string> => {
-            const sections = ['home', 'about', 'experience', 'projects', 'skills', 'education', 'certifications', 'contact'];
+            const sections = ['home', 'about', 'experience', 'projects', 'github', 'skills', 'education', 'certifications', 'contact'];
             const normalized = normalizeInput(input);
             for (const section of sections) {
                 if (normalized.includes(section)) {
@@ -808,6 +828,14 @@ const PROJECT_NAME_LOOKUP: Record<string, string> = {
     'rubik': "Rubik's Cube Solver", 'rubiks': "Rubik's Cube Solver", 'rubiks cube': "Rubik's Cube Solver",
     'cube solver': "Rubik's Cube Solver", 'rubix': "Rubik's Cube Solver", 'rcube': "Rubik's Cube Solver",
     '3d cube': "Rubik's Cube Solver",
+    // Commit Habit - GitHub streak automation
+    'commit habit': 'Commit Habit', 'commithabit': 'Commit Habit', 'commit-habit': 'Commit Habit',
+    'github streak': 'Commit Habit', 'streak automation': 'Commit Habit', 'green squares': 'Commit Habit',
+    'commitabit': 'Commit Habit', 'comit habit': 'Commit Habit',
+    // Throughput - Network speed monitor
+    'throughput': 'Throughput', 'thruput': 'Throughput', 'through put': 'Throughput',
+    'network speed': 'Throughput', 'network monitor': 'Throughput', 'speed test': 'Throughput',
+    'bandwidth monitor': 'Throughput', 'bandwidth': 'Throughput',
 };
 
 const checkPriorityProjectName = (input: string): DetectedIntent | null => {
@@ -967,7 +995,85 @@ export const detectIntent = (input: string): DetectedIntent => {
 
         bestMatch.suggestedTopics = topSuggestions;
 
+        // ============ Fuzzy Suggestion Detection ("Did you mean X?") ============
         if (bestMatch.confidence < 0.4) {
+            // Dictionary of all known keywords with their categories
+            const FUZZY_KEYWORDS: Array<{ keyword: string; displayName: string; category: 'project' | 'skill' | 'section' | 'contact' | 'keyword' }> = [
+                // Sections
+                { keyword: 'github', displayName: 'GitHub', category: 'section' },
+                { keyword: 'projects', displayName: 'Projects', category: 'section' },
+                { keyword: 'skills', displayName: 'Skills', category: 'section' },
+                { keyword: 'experience', displayName: 'Experience', category: 'section' },
+                { keyword: 'education', displayName: 'Education', category: 'section' },
+                { keyword: 'certifications', displayName: 'Certifications', category: 'section' },
+                { keyword: 'contact', displayName: 'Contact', category: 'section' },
+                { keyword: 'about', displayName: 'About', category: 'section' },
+                { keyword: 'home', displayName: 'Home', category: 'section' },
+                // Projects
+                { keyword: 'mockhick', displayName: 'MockHick', category: 'project' },
+                { keyword: 'buildmycv', displayName: 'BuildMyCV', category: 'project' },
+                { keyword: 'verifyai', displayName: 'VerifyAI', category: 'project' },
+                { keyword: 'confesscode', displayName: 'ConfessCode', category: 'project' },
+                { keyword: 'mememate', displayName: 'MemeMate', category: 'project' },
+                { keyword: 'aluchat', displayName: 'AluChat', category: 'project' },
+                { keyword: 'reelxtract', displayName: 'ReelXtract', category: 'project' },
+                { keyword: 'mathomatic', displayName: 'Math-O-Matic', category: 'project' },
+                { keyword: 'jhatu', displayName: 'Hit-The-Jhatu', category: 'project' },
+                { keyword: 'rubiks', displayName: "Rubik's Cube Solver", category: 'project' },
+                { keyword: 'commithabit', displayName: 'Commit Habit', category: 'project' },
+                { keyword: 'throughput', displayName: 'Throughput', category: 'project' },
+                // Contact methods
+                { keyword: 'linkedin', displayName: 'LinkedIn', category: 'contact' },
+                { keyword: 'email', displayName: 'Email', category: 'contact' },
+                { keyword: 'phone', displayName: 'Phone', category: 'contact' },
+                // Skills/Tech
+                { keyword: 'typescript', displayName: 'TypeScript', category: 'skill' },
+                { keyword: 'javascript', displayName: 'JavaScript', category: 'skill' },
+                { keyword: 'react', displayName: 'React', category: 'skill' },
+                { keyword: 'nodejs', displayName: 'Node.js', category: 'skill' },
+                { keyword: 'nextjs', displayName: 'Next.js', category: 'skill' },
+                { keyword: 'mongodb', displayName: 'MongoDB', category: 'skill' },
+                { keyword: 'postgresql', displayName: 'PostgreSQL', category: 'skill' },
+                { keyword: 'frontend', displayName: 'Frontend', category: 'skill' },
+                { keyword: 'backend', displayName: 'Backend', category: 'skill' },
+                { keyword: 'database', displayName: 'Database', category: 'skill' },
+                // General keywords
+                { keyword: 'portfolio', displayName: 'Portfolio', category: 'keyword' },
+                { keyword: 'resume', displayName: 'Resume', category: 'keyword' },
+                { keyword: 'hakkan', displayName: 'Hakkan', category: 'keyword' },
+                { keyword: 'interview', displayName: 'Interview', category: 'keyword' },
+            ];
+
+            let bestFuzzyMatch: { word: string; keyword: string; displayName: string; category: 'project' | 'skill' | 'section' | 'contact' | 'keyword'; score: number } | null = null;
+
+            // Check each word in the input against all known keywords
+            for (const word of words) {
+                if (word.length < 3) continue; // Skip very short words
+
+                for (const { keyword, displayName, category } of FUZZY_KEYWORDS) {
+                    const similarity = getSimilarity(word, keyword);
+                    // Threshold: 0.5 to 0.85 - close but not exact match
+                    if (similarity >= 0.5 && similarity < 0.85) {
+                        if (!bestFuzzyMatch || similarity > bestFuzzyMatch.score) {
+                            bestFuzzyMatch = { word, keyword, displayName, category, score: similarity };
+                        }
+                    }
+                }
+            }
+
+            // If we found a fuzzy match, return it as a suggestion
+            if (bestFuzzyMatch) {
+                return {
+                    intent: 'fuzzy_suggestion',
+                    confidence: bestFuzzyMatch.score,
+                    params: {},
+                    originalInput: input,
+                    suggestedWord: bestFuzzyMatch.word,
+                    suggestedMatch: bestFuzzyMatch.displayName,
+                    suggestedCategory: bestFuzzyMatch.category,
+                };
+            }
+
             bestMatch.intent = 'unknown';
         }
     }

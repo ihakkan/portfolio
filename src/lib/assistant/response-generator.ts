@@ -407,7 +407,7 @@ const buildNavigationResponse = (section: string): string => {
 };
 
 // Smart Fallback with enhanced semantic understanding
-const buildSmartFallback = (originalInput: string, context: ConversationContext): string => {
+const buildSmartFallback = (originalInput: string, context: ConversationContext): { text: string; speakText: string } => {
     const inputLower = originalInput.toLowerCase();
 
     // Normalize pronouns and references to Hakkan
@@ -499,7 +499,7 @@ const buildSmartFallback = (originalInput: string, context: ConversationContext)
             if (mapping.projectCount) {
                 response = response.replace('${count}', String(PROJECTS_KNOWLEDGE.length));
             }
-            return response;
+            return { text: response, speakText: optimizeForSpeech(response) };
         }
     }
 
@@ -507,7 +507,7 @@ const buildSmartFallback = (originalInput: string, context: ConversationContext)
     const isQuestion = /\?$|^(what|who|how|where|when|why|can|do|does|is|are|tell|show|give|explain)/i.test(originalInput);
 
     if (isQuestion) {
-        return "Great question! I'm Hakkan's portfolio assistant and I can help with:\n\n" +
+        const text = "Great question! I'm Hakkan's portfolio assistant and I can help with:\n\n" +
             "🚀 **Projects** – \"What has he built?\"\n" +
             "💻 **Skills** – \"What tech does he know?\"\n" +
             "💼 **Experience** – \"Where has he worked?\"\n" +
@@ -515,6 +515,7 @@ const buildSmartFallback = (originalInput: string, context: ConversationContext)
             "🎓 **Education** – \"Where did he study?\"\n" +
             "👤 **About** – \"Who is Hakkan?\"\n\n" +
             "What would you like to explore?";
+        return { text, speakText: optimizeForSpeech(text) };
     }
 
     // Context-aware fallback
@@ -528,20 +529,29 @@ const buildSmartFallback = (originalInput: string, context: ConversationContext)
         };
 
         if (topicResponses[context.lastTopic]) {
-            return topicResponses[context.lastTopic];
+            const text = topicResponses[context.lastTopic];
+            return { text, speakText: optimizeForSpeech(text) };
         }
 
-        return `I was just telling you about ${context.lastTopic}. Want more details on that, or should we explore something else like projects, skills, or experience?`;
+        const text = `I was just telling you about ${context.lastTopic}. Want more details on that, or should we explore something else like projects, skills, or experience?`;
+        return { text, speakText: optimizeForSpeech(text) };
     }
 
-    // Friendly generic fallback with clear guidance
+    // Friendly generic fallback regarding development status
+    const devDisclaimer = "\n\n⚠️ *I'm currently in development. For any inconvenience, please manually scroll the portfolio to explore sections!*";
+    const voiceDisclaimer = " By the way, I'm still in development, so if I get stuck, please manually scroll to explore.";
+
     const fallbacks = [
         "I'm here to help you learn about Hakkan! I can share details about his **projects**, **technical skills**, **work experience**, **education**, or **contact info**. What interests you most?",
         "I didn't quite catch that, but I know everything about Hakkan's portfolio! Ask me about his **projects** (he's built ${count}!), **skills**, or **how to contact him**.",
         "I'm Hakkan's portfolio assistant 🤖 I can tell you about:\n• His **projects** and what he's built\n• His **skills** and tech stack\n• His **experience** and career\n• How to **contact** him\n\nWhat would you like to know?"
     ];
 
-    return getRandomItem(fallbacks).replace('${count}', String(PROJECTS_KNOWLEDGE.length));
+    const chosen = getRandomItem(fallbacks).replace('${count}', String(PROJECTS_KNOWLEDGE.length));
+    return {
+        text: chosen + devDisclaimer,
+        speakText: optimizeForSpeech(chosen) + voiceDisclaimer
+    };
 };
 
 // ============ Main Response Generator ============
@@ -841,13 +851,43 @@ export const generateResponse = (
                 speakText: "Goodbye! Thanks for visiting!",
             };
 
-        case 'unknown':
-        default: {
-            const text = buildSmartFallback(intent.originalInput, context);
+        case 'fuzzy_suggestion': {
+            const suggestedMatch = intent.suggestedMatch || '';
+            const suggestedCategory = intent.suggestedCategory || 'keyword';
+            const originalWord = intent.suggestedWord || '';
+
+            // Generate context-aware suggestion messages
+            const categoryContexts: Record<string, string> = {
+                'project': `project **${suggestedMatch}**`,
+                'section': `**${suggestedMatch}** section`,
+                'skill': `**${suggestedMatch}** technology`,
+                'contact': `**${suggestedMatch}** contact method`,
+                'keyword': `**${suggestedMatch}**`,
+            };
+
+            const suggestions: Record<string, string> = {
+                'project': `Want me to tell you about the ${suggestedMatch} project?`,
+                'section': `Should I take you to the ${suggestedMatch} section or tell you about it?`,
+                'skill': `Would you like to know about Hakkan's ${suggestedMatch} skills?`,
+                'contact': `Do you want Hakkan's ${suggestedMatch} info?`,
+                'keyword': `What would you like to know about ${suggestedMatch}?`,
+            };
+
+            const context = categoryContexts[suggestedCategory];
+            const followUp = suggestions[suggestedCategory];
+
+            const text = `🤔 Did you mean ${context}?\n\n${followUp}\n\n*Just say "yes" or ask your question again!*`;
+            const speakText = `Did you mean ${suggestedMatch}? ${followUp.replace(/\*\*/g, '')}`;
+
             return {
                 text,
-                speakText: optimizeForSpeech(text),
+                speakText,
             };
+        }
+
+        case 'unknown':
+        default: {
+            return buildSmartFallback(intent.originalInput, context);
         }
     }
 };

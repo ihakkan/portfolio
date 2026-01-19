@@ -39,6 +39,11 @@ export interface Message {
     };
 }
 
+export interface Caption {
+    text: string;
+    source: 'user' | 'assistant';
+}
+
 interface AssistantContextType {
     messages: Message[];
     state: AssistantState;
@@ -53,6 +58,7 @@ interface AssistantContextType {
     setIsOpen: (open: boolean) => void;
     clearMessages: () => void;
     addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
+    caption: Caption | null;
 }
 
 // ============ Context ============
@@ -64,6 +70,7 @@ const AssistantContext = createContext<AssistantContextType | null>(null);
 export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [state, setState] = useState<AssistantState>('idle');
+    const [caption, setCaption] = useState<Caption | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [voiceSupported, setVoiceSupported] = useState(false);
@@ -73,6 +80,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const conversationContextRef = useRef<ConversationContext>(createEmptyContext());
 
     const interimTranscriptRef = useRef<string>('');
+    const captionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Check voice support on mount
     useEffect(() => {
@@ -123,13 +131,58 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }, 500);
         }
 
-        // Speak response if voice is enabled
+        // Speak response if voice is enabled with robust error handling
         // NOTE: Speaking state is set by onStart callback to sync animation with actual voice
         if (voiceEnabled && response.speakText) {
+            // Safety timeout: if voice gets stuck, reset state after 30 seconds
+            const safetyTimeout = setTimeout(() => {
+                setState((currentState) => {
+                    if (currentState === 'speaking') {
+                        console.warn('Voice speaking timeout - resetting state');
+                        cancelSpeaking();
+                        return 'idle';
+                    }
+                    return currentState;
+                });
+            }, 30000);
+
             speak(
                 response.speakText,
-                () => setState('idle'),        // onEnd - back to idle
-                () => setState('speaking')     // onStart - only now show speaking state
+                () => {
+                    clearTimeout(safetyTimeout);
+                    if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
+                    setState('idle'); // onEnd - back to idle
+                    setCaption(null);
+                },
+                () => {
+                    setState('speaking'); // onStart
+                    // Chunk long text for cinematic subtitles
+                    const text = response.speakText || '';
+                    if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
+
+                    const words = text.split(' ');
+                    const chunkSize = 10; // Words per slide
+
+                    if (words.length <= chunkSize) {
+                        setCaption({ text, source: 'assistant' });
+                    } else {
+                        let currentIndex = 0;
+                        const showNextChunk = () => {
+                            if (currentIndex >= words.length) return;
+
+                            const chunk = words.slice(currentIndex, currentIndex + chunkSize).join(' ');
+                            setCaption({ text: chunk, source: 'assistant' });
+
+                            // Estimate reading time: 300ms per word + 500ms base
+                            const duration = (chunk.split(' ').length * 300) + 500;
+                            currentIndex += chunkSize;
+
+                            captionTimeoutRef.current = setTimeout(showNextChunk, duration);
+                        };
+                        showNextChunk();
+                    }
+                },
+                {} // options
             );
         }
 
@@ -181,16 +234,40 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Set thinking state briefly
         setState('thinking');
 
+        // Safety timeout: if thinking state gets stuck, reset after 10 seconds
+        const thinkingTimeout = setTimeout(() => {
+            setState((currentState) => {
+                if (currentState === 'thinking') {
+                    console.warn('Thinking timeout - resetting state');
+                    return 'idle';
+                }
+                return currentState;
+            });
+        }, 10000);
+
         // Route query through the hybrid AI backend
         setTimeout(() => {
-            const result = routeQuery(trimmedText, conversationContextRef.current);
+            try {
+                clearTimeout(thinkingTimeout);
+                const result = routeQuery(trimmedText, conversationContextRef.current);
 
-            // Update conversation context from router result
-            conversationContextRef.current = result.updatedContext;
+                // Update conversation context from router result
+                conversationContextRef.current = result.updatedContext;
 
-            addAssistantMessage(result.response);
-            if (!voiceEnabled) {
+                addAssistantMessage(result.response);
+                if (!voiceEnabled) {
+                    setState('idle');
+                }
+            } catch (error) {
+                clearTimeout(thinkingTimeout);
+                console.error('Error processing query:', error);
                 setState('idle');
+                // Add fallback error message
+                const fallbackMessage: AssistantResponse = {
+                    text: "Sorry, something went wrong processing your request. Please try again!",
+                    speakText: "Sorry, something went wrong. Please try again.",
+                };
+                addAssistantMessage(fallbackMessage);
             }
         }, 300 + Math.random() * 200); // Slightly variable delay for natural feel
     }, [addUserMessage, addAssistantMessage, voiceEnabled]);
@@ -222,6 +299,8 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }, [addSystemMessage]);
 
     // Voice input handlers
+    const listeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     const startVoiceInput = useCallback(() => {
         if (!voiceSupported) {
             addSystemMessage(
@@ -235,16 +314,51 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setState('listening');
         interimTranscriptRef.current = '';
 
+        // Safety timeout: if listening state gets stuck, reset after 20 seconds
+        if (listeningTimeoutRef.current) {
+            clearTimeout(listeningTimeoutRef.current);
+        }
+        listeningTimeoutRef.current = setTimeout(() => {
+            setState((currentState) => {
+                if (currentState === 'listening') {
+                    console.warn('Listening timeout - resetting state');
+                    stopListening();
+                    return 'idle';
+                }
+                return currentState;
+            });
+        }, 20000);
+
         startListening(
             (transcript, isFinal) => {
+                // Update caption with live transcript
+                setCaption({ text: transcript, source: 'user' });
+
                 if (isFinal) {
+                    if (listeningTimeoutRef.current) {
+                        clearTimeout(listeningTimeoutRef.current);
+                        listeningTimeoutRef.current = null;
+                    }
                     processInput(transcript);
+                    // Don't clear caption yet, let it persist a moment or until bot speaks
+                    setTimeout(() => setCaption(null), 1500);
                 } else {
                     interimTranscriptRef.current = transcript;
                 }
             },
-            handleVoiceError,
+            (errorMessage, voiceError) => {
+                setCaption(null);
+                if (listeningTimeoutRef.current) {
+                    clearTimeout(listeningTimeoutRef.current);
+                    listeningTimeoutRef.current = null;
+                }
+                handleVoiceError(errorMessage, voiceError);
+            },
             () => {
+                if (listeningTimeoutRef.current) {
+                    clearTimeout(listeningTimeoutRef.current);
+                    listeningTimeoutRef.current = null;
+                }
                 setState('idle');
             }
         );
@@ -306,6 +420,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const value: AssistantContextType = {
         messages,
         state,
+        caption,
         isOpen,
         voiceEnabled,
         voiceSupported,
