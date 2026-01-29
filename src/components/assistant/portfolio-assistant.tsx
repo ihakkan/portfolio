@@ -105,50 +105,56 @@ const AssistantInner: React.FC = () => {
         const hasGreeted = sessionStorage.getItem('hakkan_assistant_welcome_shown');
         if (hasGreeted) return;
 
+        let interactionTimer: NodeJS.Timeout;
+
         const handleInteraction = () => {
-            if (sessionStorage.getItem('hakkan_assistant_welcome_shown')) return;
-            sessionStorage.setItem('hakkan_assistant_welcome_shown', 'true');
-
-            setIsOpen(true);
-            setShowWelcomeText(true);
-
-            setTimeout(() => {
-                const messageText = "Hello! Welcome to Hakkan's portfolio. You can find his latest projects, technical skills, and professional experience here. I'm his AI assistant, ready to help. Just ping me for anything you want to ask further!";
-
-                addMessage({
-                    role: 'assistant',
-                    content: messageText,
-                });
-
-                if (voiceEnabled) {
-                    const startTime = Date.now();
-                    speak(
-                        messageText,
-                        () => {
-                            setShowWelcomeText(false);
-                            const elapsed = Date.now() - startTime;
-                            const waitTime = elapsed < 1000 ? 8000 : 1000;
-
-                            setTimeout(() => {
-                                setIsOpen(false);
-                                setOverrideState(null);
-                            }, waitTime);
-                        },
-                        () => {
-                            setOverrideState('speaking');
-                        }
-                    );
-                } else {
-                    setTimeout(() => {
-                        setShowWelcomeText(false);
-                        setIsOpen(false);
-                    }, 8000);
-                }
-            }, 500);
-
+            // Remove listeners immediately to prevent multiple triggers
             window.removeEventListener('click', handleInteraction);
             window.removeEventListener('keydown', handleInteraction);
             window.removeEventListener('touchstart', handleInteraction);
+
+            // Wait 7 seconds before triggering the assistant
+            interactionTimer = setTimeout(() => {
+                if (sessionStorage.getItem('hakkan_assistant_welcome_shown')) return;
+                sessionStorage.setItem('hakkan_assistant_welcome_shown', 'true');
+
+                setIsOpen(true);
+                setShowWelcomeText(true);
+
+                setTimeout(() => {
+                    const messageText = "Hello! Welcome to Hakkan's portfolio. You can find his latest projects, technical skills, and professional experience here. I'm his AI assistant, ready to help. Just ping me for anything you want to ask further!";
+
+                    addMessage({
+                        role: 'assistant',
+                        content: messageText,
+                    });
+
+                    if (voiceEnabled) {
+                        const startTime = Date.now();
+                        speak(
+                            messageText,
+                            () => {
+                                setShowWelcomeText(false);
+                                const elapsed = Date.now() - startTime;
+                                const waitTime = elapsed < 1000 ? 8000 : 1000;
+
+                                setTimeout(() => {
+                                    setIsOpen(false);
+                                    setOverrideState(null);
+                                }, waitTime);
+                            },
+                            () => {
+                                setOverrideState('speaking');
+                            }
+                        );
+                    } else {
+                        setTimeout(() => {
+                            setShowWelcomeText(false);
+                            setIsOpen(false);
+                        }, 8000);
+                    }
+                }, 500);
+            }, 7000); // 7 second delay
         };
 
         window.addEventListener('click', handleInteraction);
@@ -159,6 +165,7 @@ const AssistantInner: React.FC = () => {
             window.removeEventListener('click', handleInteraction);
             window.removeEventListener('keydown', handleInteraction);
             window.removeEventListener('touchstart', handleInteraction);
+            if (interactionTimer) clearTimeout(interactionTimer);
         };
     }, [voiceEnabled, setIsOpen, speak, addMessage]);
 
