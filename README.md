@@ -1,4 +1,4 @@
-# 🚀 Portfolio of Hakkan
+#  Portfolio of Hakkan
 
 A modern, interactive portfolio website built with Next.js 15, featuring stunning animations, interactive mini games.
 
