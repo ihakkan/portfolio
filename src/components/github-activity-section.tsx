@@ -8,7 +8,9 @@ import { Github, GitPullRequest, Flame, Trophy } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 
-const GITHUB_USERNAME = 'HakkanShah';
+import { GITHUB_STATS } from '@/lib/data';
+
+const GITHUB_USERNAME = GITHUB_STATS.username;
 
 interface GitHubStats {
     publicRepos: number;
@@ -40,12 +42,7 @@ const LANGUAGE_COLORS: Record<string, string> = {
 };
 
 // GitHub achievement badges
-const ACHIEVEMENTS = [
-    { name: 'Pull Shark', img: 'https://github.githubassets.com/assets/pull-shark-default-498c279a747d.png', badge: 'x2' },
-    { name: 'YOLO', img: 'https://github.githubassets.com/assets/yolo-default-be0bbff04951.png' },
-    { name: 'Quickdraw', img: 'https://github.githubassets.com/assets/quickdraw-default-39c6aec8ff89.png' },
-    { name: 'Pair Extraordinaire', img: 'https://user-images.githubusercontent.com/101352977/178841186-98adb2c7-3c39-4e69-8251-09891cbe1983.png' },
-];
+const ACHIEVEMENTS = GITHUB_STATS.achievements;
 
 const GitHubActivitySection = () => {
     const { resolvedTheme } = useTheme();
@@ -61,23 +58,15 @@ const GitHubActivitySection = () => {
                 const userRes = await fetch(`https://api.github.com/users/${GITHUB_USERNAME}`);
                 const userData = await userRes.json();
 
-                // Hardcoded language percentages (totals 100%)
-                const languages = [
-                    { name: 'TypeScript', percentage: 70.62, color: LANGUAGE_COLORS['TypeScript'] },
-                    { name: 'JavaScript', percentage: 16.32, color: LANGUAGE_COLORS['JavaScript'] },
-                    { name: 'CSS', percentage: 8.38, color: LANGUAGE_COLORS['CSS'] },
-                    { name: 'HTML', percentage: 4.22, color: LANGUAGE_COLORS['HTML'] },
-                    { name: 'EJS', percentage: 0.25, color: LANGUAGE_COLORS['EJS'] },
-                    { name: 'Python', percentage: 0.21, color: LANGUAGE_COLORS['Python'] },
-                ];
-
-                // Total PRs Merged - update with your actual count
-                const totalPRs = 32;
+                const languages = GITHUB_STATS.languages.map((l) => ({
+                    ...l,
+                    color: LANGUAGE_COLORS[l.name],
+                }));
 
                 setStats({
-                    publicRepos: 27,
-                    totalPRs,
-                    topLanguage: 'TypeScript',
+                    publicRepos: GITHUB_STATS.publicRepos,
+                    totalPRs: GITHUB_STATS.totalPRs,
+                    topLanguage: GITHUB_STATS.topLanguage,
                     languages,
                 });
             } catch (error) {
@@ -115,8 +104,8 @@ const GitHubActivitySection = () => {
         {
             icon: Flame,
             label: 'Longest Streak',
-            value: '77 days',
-            subtitle: 'Mar 5 - May 20, 2025',
+            value: `${GITHUB_STATS.longestStreak.days} days`,
+            subtitle: GITHUB_STATS.longestStreak.period,
             color: 'text-orange-500'
         },
         {

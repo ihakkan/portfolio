@@ -94,6 +94,31 @@ A modern, interactive portfolio website built with Next.js 15, featuring stunnin
 
 ## 🛠️ Setup Guide
 
+### 🤖 Hakkan Bot (AI Assistant)
+
+The chat assistant is powered by an LLM through [Groq](https://groq.com/), grounded on your own content — it does not make facts up from general knowledge.
+
+1. Get an API key at [console.groq.com/keys](https://console.groq.com/keys).
+2. **Set a spend limit while you're there.** The endpoint is public.
+3. Add it to `.env.local`:
+   ```bash
+   GROQ_API_KEY=gsk_...
+   GROQ_MODEL=llama-3.3-70b-versatile   # optional override
+   NEXT_PUBLIC_SITE_URL=https://your-domain.com   # optional; locks the API to your origin
+   ```
+4. Check the model id is still current at [console.groq.com/docs/models](https://console.groq.com/docs/models) — Groq retires models fairly often, and `GROQ_MODEL` lets you swap one without a redeploy.
+
+Without a key the site works normally; the bot just explains that it isn't configured.
+
+**Two files control what the bot knows — nothing else:**
+
+| File | What goes in it |
+|---|---|
+| `src/lib/data.ts` | Structured facts: projects, jobs, skills, education, certifications. These already power the visible site, so editing here updates the page **and** the bot together. |
+| `src/content/profile.ts` | Everything the site doesn't show: how the bot should sound, what you're available for, opinions, FAQs, off-limits topics. Plain prose. |
+
+Built-in guardrails: the phone number in `CONTACT_INFO` is filtered out of the bot's context, answers are capped in length so the voice mode stays listenable, and `/api/chat` rate-limits per IP with a global daily ceiling.
+
 ### 👾 Discord Notifications
 1. Create a server (or use an existing one) on Discord.
 2. Go to **Server Settings** > **Integrations** > **Webhooks**.
@@ -152,20 +177,25 @@ npm run typecheck
 portfolio/
 ├── src/
 │   ├── app/              # Next.js app directory
+│   │   ├── api/chat/     # Groq-backed assistant endpoint
 │   │   ├── globals.css   # Global styles and animations
 │   │   ├── layout.tsx    # Root layout with theme provider
 │   │   ├── page.tsx      # Home page
 │   │   └── sitemap.ts    # Dynamic sitemap generation
 │   ├── components/       # React components
+│   │   ├── assistant/    # Hakkan Bot chat UI + 3D bot
 │   │   ├── games/        # Interactive mini-games
 │   │   ├── ui/           # shadcn/ui components
 │   │   ├── hero-section.tsx
 │   │   ├── about-section.tsx
 │   │   ├── skills-section.tsx
 │   │   └── ...
+│   ├── content/          # Prose the site doesn't render
+│   │   └── profile.ts    # What the bot knows beyond data.ts  ← edit me
 │   ├── hooks/            # Custom React hooks
 │   └── lib/              # Utilities and data
-│       ├── data.ts       # Portfolio content data
+│       ├── assistant/    # Bot: prompt building, API client, voice
+│       ├── data.ts       # Portfolio content data              ← edit me
 │       ├── sound.ts      # Audio utilities
 │       └── utils.ts      # Helper functions
 ├── public/               # Static assets
@@ -187,6 +217,8 @@ Edit `src/lib/data.ts` to customize:
 - Projects
 - Education
 - Certifications
+
+This is also what the AI assistant reads, so the site and the bot can never drift apart. For the bot's tone and anything the site doesn't display, edit `src/content/profile.ts`.
 
 ### Modify Theme Colors
 
@@ -212,12 +244,39 @@ Adjust animation settings in `src/app/globals.css`:
 
 ## 🚀 Deployment
 
+### Environment variables
+
+Set these in **Vercel → Project → Settings → Environment Variables** (Production, Preview and Development), and mirror them in a local `.env.local`. See [.env.example](.env.example).
+
+| Variable | Required | Notes |
+|---|---|---|
+| `GROQ_API_KEY` | **Yes**, for the bot | Without it the site works fine and the bot says it isn't configured. Server-only — never prefix with `NEXT_PUBLIC_`. |
+| `GROQ_MODEL` | No | Overrides the default model. Change here instead of redeploying code when Groq retires a model. |
+| `NEXT_PUBLIC_SITE_URL` | Recommended | Locks `/api/chat` to your own origin. `www.`, `*.vercel.app` previews and localhost are allowed automatically. Leave unset and the check is skipped. Inlined at build time, so changing it needs a redeploy. |
+| `RESEND_API_KEY` | For the contact form | |
+| `DISCORD_WEBHOOK_URL` | For visitor pings | |
+| `NEXT_PUBLIC_FIREBASE_*` | For the visitor counter | |
+
+### Pre-flight checklist
+
+```bash
+npm run typecheck   # must be clean — type errors now fail the build
+npm run build
+```
+
+- [ ] `GROQ_API_KEY` set in Vercel, **and a spend limit set in the Groq console** — `/api/chat` is a public endpoint that costs money per call
+- [ ] Model id in `GROQ_MODEL` still listed at [console.groq.com/docs/models](https://console.groq.com/docs/models)
+- [ ] `src/content/profile.ts` has no `TODO` left that you care about
+- [ ] Ask the deployed bot "where do you work now" — it must say Persist
+
 ### Deploy to Vercel (Recommended)
 
 1. Push your code to GitHub
 2. Import your repository on [Vercel](https://vercel.com)
-3. Configure environment variables
+3. Add the environment variables above
 4. Deploy!
+
+> Note: `/api/chat` runs on the Node runtime with `maxDuration = 15s` and aborts the upstream call at 8s. On the Vercel Hobby plan that sits inside the function limit.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/HakkanShah/Portfolio)
 

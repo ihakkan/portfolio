@@ -1,4 +1,4 @@
-import { Github, Linkedin, Mail, Phone } from 'lucide-react';
+import { Github, Linkedin, Mail, Phone, Sparkles, Bot, Workflow, Network, Wrench, Mic } from 'lucide-react';
 import {
   SiNextdotjs,
   SiReact,
@@ -65,6 +65,28 @@ export type Project = {
 };
 
 export const PROJECTS: Project[] = [
+  {
+    title: 'OHMSchool',
+    description: 'An adaptive K-12 learning platform that reshapes the curriculum around each student, with a 24/7 AI mentor.',
+    longDescription: 'OHMSchool is a school shaped like the student. Instead of pushing every child through a fixed syllabus, an adaptive engine reroutes the curriculum through whatever the learner already loves — teaching quadratics through the arc of a skateboard ollie, or structural engineering through the ramp they skate on. It pairs interest-driven lesson generation with a 24/7 AI mentor, multilingual support by default, and learning maps that track mastery in real time. Built and shipped at Persist; now enrolling for Fall 2026.',
+    why: 'The classroom model was built in 1894 and it still assumes every kid learns the same way at the same pace. I wanted to prove the opposite is buildable: that a curriculum can bend to the student instead of the other way around, and that an AI mentor available at 3am is worth more than a syllabus nobody chose.',
+    thumbnail: '/project-images/ohmschool.png',
+    tags: ['Next.js', 'TypeScript', 'LLM', 'Adaptive Learning', 'AI Mentor', 'Multilingual', 'Tailwind CSS'],
+    liveUrl: 'https://www.ohmschool.org/',
+    repoUrl: '',
+    aiHint: 'adaptive learning platform',
+  },
+  {
+    title: 'AURA',
+    description: 'A chat- and voice-driven desktop agent that operates your computer like a human — no code, no setup.',
+    longDescription: 'AURA is the UI for OpenClaw: speak or type your intent and it drives your actual desktop to the outcome — booking a flight, applying to a job, summarising an inbox. Rather than wrapping rigid REST APIs, it pilots the real interface layer with full DOM reasoning across nested frames, backed by always-listening streaming speech-to-text, encrypted identity and form memory, a verify-before-act protocol, and fully local isolated execution so nothing runs on a remote container. Currently in v0.2 open beta, built in the open at Persist.',
+    why: 'Most "AI automation" breaks the moment a site changes a class name, because it is really just a brittle script wearing a model as a hat. I wanted an agent that reasons about the interface the way a person does — look, decide, verify, act — and that runs on your own machine so the automation never costs you your privacy.',
+    thumbnail: '/project-images/aura.png',
+    tags: ['AI Agents', 'DOM Reasoning', 'Next.js', 'TypeScript', 'Python', 'Speech-to-Text', 'Desktop Automation'],
+    liveUrl: 'https://aura-website-ashen.vercel.app/',
+    repoUrl: '',
+    aiHint: 'desktop ai agent',
+  },
   {
     title: 'Commit Habit',
     description: 'A GitHub App that helps developers maintain daily GitHub activity streaks securely without Personal Access Tokens.',
@@ -202,6 +224,17 @@ export const PROJECTS: Project[] = [
 
 export const SKILLS = [
   {
+    name: "AI Engineering",
+    skills: [
+      { name: "AI Agents", icon: Bot, color: "#7C5CFF" },
+      { name: "LLM Orchestration", icon: Workflow, color: "#9B7BFF" },
+      { name: "RAG", icon: Network, color: "#00C2A8" },
+      { name: "Tool Use", icon: Wrench, color: "#FF7A45" },
+      { name: "DOM Reasoning", icon: Sparkles, color: "#F7B500" },
+      { name: "Speech-to-Text", icon: Mic, color: "#20C997" },
+    ],
+  },
+  {
     name: "Frontend",
     skills: [
       { name: "HTML5", icon: SiHtml5, color: "#E34F26" },
@@ -280,11 +313,67 @@ export const SKILLS = [
   }
 ];
 
-export const EXPERIENCE = [
+export type Experience = {
+  role: string;
+  company: string;
+  period: string;
+  description: string;
+  reality: string;
+  offerLetter?: string;
+  details: {
+    overview: string;
+    responsibilities: string[];
+    realityResponsibilities: string[];
+    technologies: string[];
+    achievements: string[];
+    realityAchievements: string[];
+  };
+};
+
+export const EXPERIENCE: Experience[] = [
+  {
+    role: 'Fullstack AI Engineer',
+    company: 'Persist',
+    period: 'Present',
+    description: 'Building AI products end to end at Persist — the agent that thinks, the backend that scales, and the interface humans actually enjoy using. Joined in Feb 2026 after winning Startupathon against 250+ builders.',
+    reality: "Won a build competition against 250+ people, turned down two campus placements, and now I ship agents that browse the internet better than I do. No safety net, no complaints — mostly I just argue with a DOM tree until it obeys.",
+    details: {
+      overview: 'Persist funds overlooked builders to become founders. As one of the Persistians, I own products from empty repo to production — model behaviour, backend, and UI treated as one single thing. Two live products in the first five months.',
+      responsibilities: [
+        'Built OHMSchool end to end — an adaptive K-12 learning platform that reroutes curriculum through whatever a student already cares about',
+        'Designed the adaptive engine and 24/7 AI mentor powering personalised, interest-driven learning paths',
+        'Building AURA, a chat- and voice-driven agent that drives a real desktop through full DOM reasoning instead of brittle scripts',
+        'Implemented always-listening voice input with streaming speech-to-text and a verify-before-act safety protocol',
+        'Shipped local, isolated execution so agent runs stay on the user’s machine rather than a remote container',
+        'Own the product UI/UX — motion, hierarchy and feel — so the intelligence is legible instead of just impressive',
+      ],
+      realityResponsibilities: [
+        "Rebuilt school from scratch. The 1894 model had a good run, but it never met a kid who learns quadratics through skateboard ollies.",
+        "The AI mentor is patient, available at 3am, and never once sighed at a repeated question. Setting a high bar for humans.",
+        "Taught software to click buttons like a person. It now fails in exactly the same places a person does, which I'm calling progress.",
+        "Always-listening voice means the agent has heard things. It will not be testifying.",
+        "Local execution: your data never leaves your machine, and neither does the blame.",
+        "Spent a full day on one easing curve. Worth it. Do not ask me to justify this.",
+      ],
+      technologies: ['Next.js', 'TypeScript', 'Node.js', 'Python', 'LLM Orchestration', 'AI Agents', 'RAG', 'Tool Use', 'DOM Automation', 'Speech-to-Text', 'Tailwind CSS'],
+      achievements: [
+        'Won Persist Startupathon out of 250+ builders — no résumé screening, merit over pedigree',
+        'Shipped OHMSchool to production; now enrolling for Fall 2026',
+        'Took AURA to v0.2 open beta, built publicly',
+        'Two live products inside five months of joining',
+      ],
+      realityAchievements: [
+        "Beat 250+ builders. Still slightly convinced they miscounted.",
+        "OHMSchool is live and real children are learning from it. That thought keeps me humble and mildly terrified.",
+        "AURA hit v0.2 beta. The 'v0.1' stories will stay between me and my logs.",
+        "Two products in five months. My sleep schedule filed a formal complaint.",
+      ],
+    },
+  },
   {
     role: 'Full Stack Developer Intern',
     company: 'UDRCRAFTS INDIA PVT. LTD.',
-    period: 'Present',
+    period: 'Previous',
     description: 'Developed full-stack solutions, handling both frontend interfaces and backend logic to deliver robust web products.',
     reality: "Honestly? It's mostly me fighting with CSS to center things while simultaneously praying the database doesn't catch fire. Full stack means full responsibility for the mess.",
     offerLetter: '/UdrCrafts_Internship_Offer_Letter.pdf',
@@ -366,7 +455,7 @@ export const EDUCATION = [
     degree: 'B.Tech CSE',
     institution: 'Greater Kolkata College of Engineering and Management',
     period: '2022 – 2026',
-    details: 'CGPA: 7.5/10',
+    details: 'Graduated July 2026 · CGPA: 7.5/10',
   },
   {
     degree: 'Higher Secondary',
@@ -390,14 +479,53 @@ export const CERTIFICATIONS = [
   { name: 'Zscaler Zero Trust Security', issuer: 'Eduskills Foundation & Zscaler', url: 'https://drive.google.com/file/d/1V31whUog2M8rhOW69HgZjBil1mazVY13/view?usp=sharing' },
 ];
 
+/**
+ * Stats shown in the GitHub Activity section. Kept here rather than inside the
+ * component so the AI assistant can answer questions about them too — the live
+ * contribution calendar is fetched at render time, but these numbers are not.
+ * Update them when they drift.
+ */
+export type GitHubAchievement = { name: string; badge?: string; img: string };
+
+export const GITHUB_STATS: {
+  username: string;
+  publicRepos: number;
+  totalPRs: number;
+  longestStreak: { days: number; period: string };
+  topLanguage: string;
+  languages: { name: string; percentage: number }[];
+  achievements: GitHubAchievement[];
+} = {
+  username: 'HakkanShah',
+  publicRepos: 27,
+  totalPRs: 32,
+  longestStreak: { days: 77, period: 'Mar 5 – May 20, 2025' },
+  topLanguage: 'TypeScript',
+  languages: [
+    { name: 'TypeScript', percentage: 70.62 },
+    { name: 'JavaScript', percentage: 16.32 },
+    { name: 'CSS', percentage: 8.38 },
+    { name: 'HTML', percentage: 4.22 },
+    { name: 'EJS', percentage: 0.25 },
+    { name: 'Python', percentage: 0.21 },
+  ],
+  achievements: [
+    { name: 'Pull Shark', badge: 'x2', img: 'https://github.githubassets.com/assets/pull-shark-default-498c279a747d.png' },
+    { name: 'YOLO', img: 'https://github.githubassets.com/assets/yolo-default-be0bbff04951.png' },
+    { name: 'Quickdraw', img: 'https://github.githubassets.com/assets/quickdraw-default-39c6aec8ff89.png' },
+    { name: 'Pair Extraordinaire', img: 'https://user-images.githubusercontent.com/101352977/178841186-98adb2c7-3c39-4e69-8251-09891cbe1983.png' },
+  ],
+};
+
 export const CONTACT_INFO = [
   { name: 'Email', value: 'hakkanparbej@gmail.com', icon: Mail, href: 'mailto:hakkanparbej@gmail.com', color: '#EA4335' },
   { name: 'Phone', value: '+91-7810843038', icon: Phone, href: 'tel:+917810843038', color: '#43C59E' },
   { name: 'GitHub', value: 'HakkanShah', icon: Github, href: 'https://github.com/HakkanShah' },
   { name: 'LinkedIn', value: 'hakkan', icon: Linkedin, href: 'https://www.linkedin.com/in/hakkan/', color: '#0A66C2' },
   { name: 'G.Dev Profile', value: 'hakkan', icon: FcGoogle, href: 'https://g.dev/hakkan' },
+  { name: 'Persist', value: 'hakkan.persist.org', icon: Sparkles, href: 'https://hakkan.persist.org', color: '#7C5CFF' },
 ];
 
-export const ABOUT_ME = "Innovative and detail-oriented B.Tech CSE student passionate about building impactful web applications, blending creativity with technical expertise. Experienced in frontend & backend development, AI integration, and UI/UX design. Skilled at leading teams, solving complex problems, and delivering high-quality solutions under deadlines ."
+export const ABOUT_ME = "Fullstack AI Engineer at Persist, where I treat the model, the backend and the pixels as one single product. I won Persist's Startupathon against 250+ builders in February 2026, turned down two campus placements to take the job, and finished my B.Tech in CSE that July with two live products already shipped — OHMSchool, an adaptive K-12 learning platform, and AURA, a desktop agent that operates your computer through real DOM reasoning. I build AI agents that act on real interfaces, the fullstack machinery that keeps them reliable, and the UI that makes the intelligence feel obvious. Based in India, building remotely for four continents."
 
 

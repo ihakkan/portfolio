@@ -50,7 +50,7 @@ const ExperienceSection = () => {
             {isRealityMode ? (
               <span className="text-rose-500 font-mono font-medium">Behind the scenes: The unfiltered developer experience.</span>
             ) : (
-              "My professional journey and internships."
+              "My professional journey — from internships to shipping AI products full time."
             )}
           </p>
         </AnimatedDiv>
@@ -140,7 +140,6 @@ const ExperienceSection = () => {
                               : 'text-foreground/80'
                             }`}
                         >
-                          {/* @ts-ignore - reality exists in data but might not be in type definition yet */}
                           {isRealityMode ? exp.reality : exp.description}
                         </motion.p>
                       </div>
@@ -159,18 +158,20 @@ const ExperienceSection = () => {
                           {isRealityMode ? "What I Actually Did" : "View Details"}
                         </Button>
 
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className={`flex-1 sm:flex-none gap-2 font-bold transition-all duration-300 h-10 sm:h-9 py-2 sm:py-0 ${isRealityMode
-                              ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-[0_0_15px_rgba(244,63,94,0.6)] hover:shadow-[0_0_25px_rgba(244,63,94,0.8)]'
-                              : 'bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.6)] hover:shadow-[0_0_25px_rgba(var(--primary),0.8)]'
-                            }`}
-                          onClick={() => setSelectedOfferLetter({ url: exp.offerLetter, title: `${exp.company} Offer Letter` })}
-                        >
-                          <ShieldCheck className="w-4 h-4" />
-                          {isRealityMode ? "Proof I Actually Did It" : "View Offer Letter"}
-                        </Button>
+                        {exp.offerLetter && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className={`flex-1 sm:flex-none gap-2 font-bold transition-all duration-300 h-10 sm:h-9 py-2 sm:py-0 ${isRealityMode
+                                ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-[0_0_15px_rgba(244,63,94,0.6)] hover:shadow-[0_0_25px_rgba(244,63,94,0.8)]'
+                                : 'bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.6)] hover:shadow-[0_0_25px_rgba(var(--primary),0.8)]'
+                              }`}
+                            onClick={() => setSelectedOfferLetter({ url: exp.offerLetter!, title: `${exp.company} Offer Letter` })}
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            {isRealityMode ? "Proof I Actually Did It" : "View Offer Letter"}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </motion.div>

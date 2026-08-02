@@ -1,32 +1,27 @@
 import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
-import { Geist, Geist_Mono, Bangers, Comic_Neue } from "next/font/google";
+import { Bangers, Comic_Neue } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import VisitorTracker from '@/components/visitor-tracker';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+// Only the two families the design actually uses: Bangers via `font-headline`
+// and Comic Neue via `font-body`. Everything else resolves to the system stack,
+// so loading extra families only cost bandwidth.
 const bangers = Bangers({
   weight: '400',
   subsets: ['latin'],
   variable: '--font-bangers',
+  display: 'swap',
 });
 
 const comicNeue = Comic_Neue({
-  weight: ['300', '400', '700'],
+  weight: '400',
   subsets: ['latin'],
   variable: '--font-comic-neue',
   style: ['normal', 'italic'],
+  display: 'swap',
 });
 
 export const viewport: Viewport = {
@@ -35,65 +30,75 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://hakkan.is-a.dev'),
-  title: "Hakkan - Full Stack Developer",
+  title: "Hakkan Parbej Shah - Fullstack AI Engineer",
   description:
-    "Hakkan Parbej Shah is a Full Stack Developer skilled in building modern, scalable, and efficient web applications. Passionate about clean code, seamless user experiences, and turning ideas into impactful digital products.",
+    "Hakkan Parbej Shah is a Fullstack AI Engineer at Persist, building AI agents that act on real interfaces, the fullstack systems behind them, and the product UI that makes them feel obvious. Creator of OHMSchool and AURA.",
   manifest: "/manifest.webmanifest",
   keywords: [
     "Hakkan",
     "Hakkan Parbej Shah",
     "Hakkan Shah",
+    "Fullstack AI Engineer",
+    "AI Engineer",
+    "AI Agents",
+    "LLM Engineer",
+    "Persist",
+    "Persistian",
+    "OHMSchool",
+    "AURA",
     "Full Stack Developer",
-    "MERN Stack Developer",
-    "Web Developer",
-    "Frontend Developer",
-    "Backend Developer",
+    "Next.js Developer",
     "React Developer",
     "Node.js Developer",
-    "JavaScript Developer",
+    "TypeScript Developer",
     "Developer Portfolio",
-    "Software Engineer",
-    "Web Application Developer",
-    "Clean Code",
-    "User Experience",
+    "Software Engineer India",
     "hakkan.is-a.dev",
     "Hakkan Portfolio"
   ],
-  authors: [{ name: "Hakkan Parbej Shah" }],
+  authors: [{ name: "Hakkan Parbej Shah", url: "https://hakkan.is-a.dev" }],
   creator: "Hakkan Parbej Shah",
-  category: "Personal Portfolio / Web Development",
+  publisher: "Hakkan Parbej Shah",
+  category: "Personal Portfolio / AI Engineering",
   applicationName: "Hakkan Portfolio",
-  robots: "index, follow",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
   openGraph: {
-    title: "Hakkan Parbej Shah - Full Stack Developer",
+    title: "Hakkan Parbej Shah - Fullstack AI Engineer",
     description:
-      "Explore the portfolio of Hakkan Parbej Shah — a Full Stack Developer dedicated to crafting clean, efficient, and high-quality web applications with modern technologies.",
+      "Fullstack AI Engineer at Persist. I build AI agents that act on real interfaces, the backends that keep them reliable, and the interfaces humans enjoy using.",
     url: "https://hakkan.is-a.dev/",
     siteName: "Hakkan Parbej Shah Portfolio",
     images: [
       {
-        url: "https://hakkan.is-a.dev/profile.jpg",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Hakkan Parbej Shah Full Stack Portfolio"
+        alt: "Hakkan Parbej Shah — Fullstack AI Engineer at Persist"
       }
     ],
     locale: "en_US",
-    type: "website"
+    type: "profile"
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hakkan Parbej Shah - Full Stack Developer",
+    title: "Hakkan Parbej Shah - Fullstack AI Engineer",
     description:
-      "Full Stack Developer passionate about building scalable, modern, and user-focused web applications. Explore my portfolio and projects.",
+      "Fullstack AI Engineer at Persist, shipping AI agents, fullstack systems and product UI. Creator of OHMSchool and AURA.",
     creator: "@HakkanShah",
-    images: ["https://hakkan.is-a.dev/profile.jpg"]
+    images: ["/og-image.jpg"]
   },
   alternates: {
     canonical: '/',
-  },
-  verification: {
-    google: 'google-site-verification-code', // Replace with your actual code
   },
 };
 
@@ -105,7 +110,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${bangers.variable} ${comicNeue.variable} antialiased`}
+        className={`${bangers.variable} ${comicNeue.variable} antialiased`}
       >
         <ThemeProvider
           attribute="class"
@@ -126,18 +131,43 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "Person",
               "name": "Hakkan Parbej Shah",
+              "alternateName": "Hakkan Shah",
               "url": "https://hakkan.is-a.dev",
-              "image": "https://hakkan.is-a.dev/profile.jpg",
+              "image": "https://hakkan.is-a.dev/og-image.jpg",
+              "description":
+                "Fullstack AI Engineer at Persist, building AI agents, fullstack systems and product interfaces. Creator of OHMSchool and AURA.",
+              "email": "mailto:hakkanparbej@gmail.com",
+              "address": {
+                "@type": "PostalAddress",
+                "addressCountry": "IN"
+              },
               "sameAs": [
                 "https://github.com/HakkanShah",
                 "https://www.linkedin.com/in/hakkan/",
-                "https://g.dev/hakkan"
+                "https://g.dev/hakkan",
+                "https://hakkan.persist.org"
               ],
-              "jobTitle": "Full Stack Developer",
+              "jobTitle": "Fullstack AI Engineer",
               "worksFor": {
                 "@type": "Organization",
-                "name": "Self-Employed"
-              }
+                "name": "Persist",
+                "url": "https://persist.org/"
+              },
+              "alumniOf": {
+                "@type": "CollegeOrUniversity",
+                "name": "Greater Kolkata College of Engineering and Management"
+              },
+              "knowsAbout": [
+                "AI Agents",
+                "Large Language Models",
+                "Retrieval-Augmented Generation",
+                "Fullstack Web Development",
+                "Next.js",
+                "TypeScript",
+                "Node.js",
+                "Python",
+                "Product UI/UX"
+              ]
             })
           }}
         />

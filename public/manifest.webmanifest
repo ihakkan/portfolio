@@ -1,19 +1,19 @@
 {
-    "name": "Hakkan - Full Stack Developer",
+    "name": "Hakkan Parbej Shah - Fullstack AI Engineer",
     "short_name": "Hakkan",
-    "description": "Hakkan Parbej Shah is a Full Stack Developer skilled in building modern, scalable, and efficient web applications.",
+    "description": "Fullstack AI Engineer at Persist, building AI agents, fullstack systems and product interfaces. Creator of OHMSchool and AURA.",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#ffffff",
+    "background_color": "#0B0B0C",
+    "theme_color": "#E23636",
     "icons": [
         {
-            "src": "/profile.jpg",
+            "src": "/icons/icon-192.jpg",
             "sizes": "192x192",
             "type": "image/jpeg"
         },
         {
-            "src": "/profile.jpg",
+            "src": "/icons/icon-512.jpg",
             "sizes": "512x512",
             "type": "image/jpeg"
         }

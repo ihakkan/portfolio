@@ -10,7 +10,7 @@ type AnimatedDivProps = {
   delay?: number;
   variant?: 'fade' | 'slide' | 'scale' | 'slideLeft' | 'slideRight';
   duration?: number;
-  as?: keyof JSX.IntrinsicElements;
+  as?: keyof React.JSX.IntrinsicElements;
 };
 
 const AnimatedDiv: React.FC<AnimatedDivProps> = ({ 

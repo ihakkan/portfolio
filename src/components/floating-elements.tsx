@@ -46,7 +46,7 @@ const FloatingElements = () => {
     };
 
     if (!isMobile) {
-      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mousemove', handleMouseMove, { passive: true });
     }
 
     return () => {

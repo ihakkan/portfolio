@@ -38,7 +38,7 @@ export default function FlappyHakkan({ onClose }: FlappyHakkanProps) {
     const [highScore, setHighScore] = useState(0);
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const requestRef = useRef<number>();
+    const requestRef = useRef<number | undefined>(undefined);
     const scoreRef = useRef(0);
 
     // Game state refs for loop

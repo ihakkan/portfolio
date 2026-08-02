@@ -36,6 +36,7 @@ const CursorFollower = () => {
   const isScrolling = useRef(false);
   const lastTouchTime = useRef(0);
   const lastWebTime = useRef(0); // Throttle web creation
+  const lastTrailPos = useRef({ x: 0, y: 0 });
 
 
   useEffect(() => {
@@ -132,13 +133,21 @@ const CursorFollower = () => {
     };
 
     const updateTrail = () => {
-      trail.current.push({
-        x: mouse.current.x,
-        y: mouse.current.y,
-        life: 1.0,
-        vx: (Math.random() - 0.5) * glitchIntensity.current,
-        vy: (Math.random() - 0.5) * glitchIntensity.current
-      });
+      // Only extend the trail when the pointer actually moved. Emitting a point
+      // every frame while it sits still just piles up identical coordinates and
+      // keeps the render loop alive for nothing.
+      const { x, y } = mouse.current;
+      if (x !== lastTrailPos.current.x || y !== lastTrailPos.current.y) {
+        trail.current.push({
+          x,
+          y,
+          life: 1.0,
+          vx: (Math.random() - 0.5) * glitchIntensity.current,
+          vy: (Math.random() - 0.5) * glitchIntensity.current
+        });
+        lastTrailPos.current.x = x;
+        lastTrailPos.current.y = y;
+      }
 
       for (let i = trail.current.length - 1; i >= 0; i--) {
         const p = trail.current[i];
@@ -295,16 +304,37 @@ const CursorFollower = () => {
       drawSpiderSense(mouse.current.x, mouse.current.y);
     };
 
+    // The loop parks itself once there is nothing left to draw and is woken by
+    // the next pointer event, so an idle page costs zero frames instead of
+    // clearing and repainting a full-viewport canvas 60 times a second.
+    let isRunning = false;
+
+    const hasWork = () =>
+      trail.current.length > 0 || webs.current.length > 0 || isHovering.current;
+
     const animate = () => {
       updateTrail();
       updateWebs();
       draw();
+
+      if (hasWork()) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        isRunning = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+
+    const wake = () => {
+      if (isRunning) return;
+      isRunning = true;
       animationFrameId = requestAnimationFrame(animate);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
+      wake();
 
       // Check if hovering over terminal (or any element with no-custom-cursor class)
       const target = e.target as HTMLElement;
@@ -333,6 +363,7 @@ const CursorFollower = () => {
       if (target.closest('.no-custom-cursor') || target.closest('.no-click-effect')) return;
 
       createWeb(mouse.current.x, mouse.current.y);
+      wake();
     };
 
     const handleMouseOver = (e: MouseEvent) => {
@@ -346,6 +377,7 @@ const CursorFollower = () => {
         target.classList.contains('cursor-pointer')
       ) {
         isHovering.current = true;
+        wake();
       } else {
         isHovering.current = false;
       }
@@ -371,6 +403,8 @@ const CursorFollower = () => {
         } else {
           if (canvasRef.current) canvasRef.current.style.opacity = '1';
         }
+
+        wake();
       }
     };
 
@@ -399,19 +433,22 @@ const CursorFollower = () => {
         // It was a tap, not a scroll
         if (canvasRef.current && canvasRef.current.style.opacity === '0') return;
         createWeb(mouse.current.x, mouse.current.y);
+        wake();
       }
     };
 
-    window.addEventListener('resize', resizeCanvas);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('touchmove', handleTouchMove);
-    window.addEventListener('touchstart', handleTouchStart);
-    window.addEventListener('touchend', handleTouchEnd);
-    document.addEventListener('mouseover', handleMouseOver);
+    // All of these are read-only observers — marking them passive keeps the
+    // touch handlers off the scroll blocking path on mobile.
+    const passive = { passive: true } as const;
+    window.addEventListener('resize', resizeCanvas, passive);
+    window.addEventListener('mousemove', handleMouseMove, passive);
+    window.addEventListener('mousedown', handleMouseDown, passive);
+    window.addEventListener('touchmove', handleTouchMove, passive);
+    window.addEventListener('touchstart', handleTouchStart, passive);
+    window.addEventListener('touchend', handleTouchEnd, passive);
+    document.addEventListener('mouseover', handleMouseOver, passive);
 
     resizeCanvas();
-    animate();
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);

@@ -12,7 +12,7 @@ interface SnakeProps {
 
 type Point = { x: number; y: number };
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
-type FoodItem = Point & { icon: React.ElementType; color: string };
+type FoodItem = Point & { icon: React.ComponentType<{ className?: string }>; color: string };
 
 const GRID_SIZE = 20;
 const INITIAL_SPEED = 150;

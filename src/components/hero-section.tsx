@@ -217,12 +217,13 @@ const HeroVisual = ({
               <div className="relative w-full h-full rounded-lg overflow-hidden bg-background">
                 <Image
                   src="https://github.com/HakkanShah.png"
-                  alt="Hakkan"
+                  alt="Hakkan Parbej Shah, Fullstack AI Engineer at Persist"
                   width={400}
                   height={400}
-                  unoptimized
+                  sizes="(max-width: 768px) 60vw, 400px"
                   className="object-cover w-full h-full"
                   priority
+                  fetchPriority="high"
                 />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <div className="text-center px-4">

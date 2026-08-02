@@ -49,19 +49,23 @@ const AnimatedTitle = () => {
       whileTap={{ scale: 0.95 }}
     >
       <div className="relative">
-        {/* Main Text */}
-        <h1 className="font-headline text-3xl font-bold tracking-wider text-primary relative z-10">
+        {/* Main Text — a wordmark, not a heading: the page's only <h1> is the
+            hero name, and the glitch layers below are decorative duplicates. */}
+        <div className="font-headline text-3xl font-bold tracking-wider text-primary relative z-10">
           {displayText}
-        </h1>
-        
+        </div>
+
         {/* Glitch Layers (Visible on Hover) */}
-        <div className="absolute top-0 left-0 w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-100">
-          <h1 className="font-headline text-3xl font-bold tracking-wider text-red-500 absolute top-0 left-[2px] opacity-70 animate-pulse">
+        <div
+          aria-hidden="true"
+          className="absolute top-0 left-0 w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-100"
+        >
+          <div className="font-headline text-3xl font-bold tracking-wider text-red-500 absolute top-0 left-[2px] opacity-70 animate-pulse">
             {displayText}
-          </h1>
-          <h1 className="font-headline text-3xl font-bold tracking-wider text-blue-500 absolute top-0 -left-[2px] opacity-70 animate-pulse delay-75">
+          </div>
+          <div className="font-headline text-3xl font-bold tracking-wider text-blue-500 absolute top-0 -left-[2px] opacity-70 animate-pulse delay-75">
             {displayText}
-          </h1>
+          </div>
         </div>
 
         {/* Underline Animation */}

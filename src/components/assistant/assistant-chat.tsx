@@ -27,6 +27,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
         state,
         voiceEnabled,
         voiceSupported,
+        isLoading,
         sendMessage,
         startVoiceInput,
         startVoiceToText,
@@ -50,7 +51,7 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (inputValue.trim()) {
+        if (inputValue.trim() && !isLoading) {
             sendMessage(inputValue.trim());
             setInputValue('');
         }
@@ -195,12 +196,14 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ delay: i * 0.1 }}
                                                 onClick={() => sendMessage(suggestion.query)}
+                                                disabled={isLoading}
                                                 className={cn(
                                                     'flex items-center gap-1.5 px-4 py-2.5 rounded-full',
                                                     'bg-muted/50 hover:bg-muted border border-border/50',
                                                     'text-xs font-medium transition-all duration-200',
                                                     'hover:scale-105 hover:border-primary/30',
-                                                    'active:scale-95'
+                                                    'active:scale-95',
+                                                    'disabled:opacity-50 disabled:pointer-events-none'
                                                 )}
                                             >
                                                 <suggestion.icon className="w-3.5 h-3.5 text-primary" />
@@ -358,10 +361,14 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
                             <Button
                                 type="submit"
                                 size="icon"
-                                disabled={!inputValue.trim() || isListening}
+                                disabled={!inputValue.trim() || isListening || isLoading}
                                 className="border-2 border-foreground/20 w-10 h-10 shrink-0"
                             >
-                                <Send className="w-5 h-5" />
+                                {isLoading ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <Send className="w-5 h-5" />
+                                )}
                             </Button>
                         </form>
 

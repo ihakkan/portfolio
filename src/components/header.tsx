@@ -11,18 +11,28 @@ import { ThemeToggle } from './theme-toggle';
 import AnimatedHamburgerIcon from './animated-hamburger-icon';
 import AnimatedTitle from './animated-title';
 
+// Hoisted so their identity is stable — passing fresh array/object literals would
+// make useScrollSpy tear down and rebuild its IntersectionObserver on every render.
+const SECTION_IDS = NAV_LINKS.map(link => link.href);
+const SPY_OPTIONS: IntersectionObserverInit = { rootMargin: '-50% 0px -50% 0px' };
+
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const sectionIds = NAV_LINKS.map(link => link.href);
-  const activeId = useScrollSpy(sectionIds, { rootMargin: '-50% 0px -50% 0px' });
+  const activeId = useScrollSpy(SECTION_IDS, SPY_OPTIONS);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setIsScrolled(window.scrollY > 10);
+        ticking = false;
+      });
     };
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check on mount
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    setIsScrolled(window.scrollY > 10); // Check on mount
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
