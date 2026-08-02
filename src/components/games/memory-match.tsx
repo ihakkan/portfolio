@@ -12,7 +12,7 @@ interface MemoryMatchProps {
 
 type Card = {
     id: number;
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string }>;
     isFlipped: boolean;
     isMatched: boolean;
     color: string;

@@ -7,8 +7,8 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { getWelcomeMessage, AssistantResponse } from './response-generator';
-import { routeQuery } from './query-router';
+import { getWelcomeMessage, MAX_HISTORY_TURNS, type AssistantResponse, type Turn } from './types';
+import { askAssistant, AssistantApiError } from './chat-client';
 import {
     startListening,
     stopListening,
@@ -18,10 +18,6 @@ import {
     preloadVoices,
     VoiceError,
 } from './voice-service';
-import {
-    ConversationContext,
-    createEmptyContext,
-} from './smart-response-engine';
 
 // ============ Types ============
 
@@ -50,6 +46,7 @@ interface AssistantContextType {
     isOpen: boolean;
     voiceEnabled: boolean;
     voiceSupported: boolean;
+    isLoading: boolean;
     sendMessage: (text: string) => void;
     startVoiceInput: () => void;
     startVoiceToText: (onTranscript: (text: string) => void) => void;
@@ -75,9 +72,16 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [voiceSupported, setVoiceSupported] = useState(false);
     const [hasShownWelcome, setHasShownWelcome] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Conversation memory for contextual responses
-    const conversationContextRef = useRef<ConversationContext>(createEmptyContext());
+    // Conversation memory. The model gets the actual turns, so follow-ups like
+    // "yes", "tell me more" and "the second one" resolve natively — no need for
+    // the old suggested-topic bookkeeping.
+    const historyRef = useRef<Turn[]>([]);
+
+    // Guards against a superseded request landing after a newer one.
+    const requestIdRef = useRef(0);
+    const abortRef = useRef<AbortController | null>(null);
 
     const interimTranscriptRef = useRef<string>('');
     const captionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -223,18 +227,23 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     }, [isOpen, hasShownWelcome, addAssistantMessage]);
 
-    // Process user input with conversation context
-    const processInput = useCallback((text: string) => {
+    // Ask the model. The network round trip is the natural pause now, so there
+    // is no artificial "thinking" delay.
+    const processInput = useCallback(async (text: string) => {
         const trimmedText = text.trim();
         if (!trimmedText) return;
 
-        // Add user message
+        // Supersede anything still in flight — the user has moved on.
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const myRequestId = ++requestIdRef.current;
+
         addUserMessage(trimmedText);
-
-        // Set thinking state briefly
         setState('thinking');
+        setIsLoading(true);
 
-        // Safety timeout: if thinking state gets stuck, reset after 10 seconds
+        // Safety net for a request that neither resolves nor rejects.
         const thinkingTimeout = setTimeout(() => {
             setState((currentState) => {
                 if (currentState === 'thinking') {
@@ -243,40 +252,49 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 }
                 return currentState;
             });
-        }, 10000);
+        }, 12000);
 
-        // Route query through the hybrid AI backend
-        setTimeout(() => {
-            try {
-                clearTimeout(thinkingTimeout);
-                const result = routeQuery(trimmedText, conversationContextRef.current);
+        try {
+            const response = await askAssistant(trimmedText, historyRef.current, controller.signal);
 
-                // Update conversation context from router result
-                conversationContextRef.current = result.updatedContext;
+            // A newer question has since been asked; this answer is stale.
+            if (myRequestId !== requestIdRef.current) return;
 
-                addAssistantMessage(result.response);
-                if (!voiceEnabled) {
-                    setState('idle');
-                }
-            } catch (error) {
-                clearTimeout(thinkingTimeout);
-                console.error('Error processing query:', error);
+            const nextHistory: Turn[] = [
+                ...historyRef.current,
+                { role: 'user', content: trimmedText },
+                { role: 'assistant', content: response.text },
+            ];
+            historyRef.current = nextHistory.slice(-MAX_HISTORY_TURNS);
+
+            addAssistantMessage(response);
+            if (!voiceEnabled) {
                 setState('idle');
-                // Add fallback error message
-                const fallbackMessage: AssistantResponse = {
-                    text: "Sorry, something went wrong processing your request. Please try again!",
-                    speakText: "Sorry, something went wrong. Please try again.",
-                };
-                addAssistantMessage(fallbackMessage);
             }
-        }, 300 + Math.random() * 200); // Slightly variable delay for natural feel
-    }, [addUserMessage, addAssistantMessage, voiceEnabled]);
+        } catch (error) {
+            if (myRequestId !== requestIdRef.current) return;
+            // Superseded by a newer request, not a failure.
+            if ((error as Error)?.name === 'AbortError') return;
+
+            console.error('Error processing query:', error);
+            setState('idle');
+
+            const isApiError = error instanceof AssistantApiError;
+            addSystemMessage(
+                isApiError ? error.message : "Sorry, something went wrong. Please try again!",
+                isApiError && error.code === 'unconfigured' ? 'info' : 'error'
+            );
+        } finally {
+            clearTimeout(thinkingTimeout);
+            if (myRequestId === requestIdRef.current) setIsLoading(false);
+        }
+    }, [addUserMessage, addAssistantMessage, addSystemMessage, voiceEnabled]);
 
 
     // Send text message
     const sendMessage = useCallback((text: string) => {
         cancelSpeaking();
-        processInput(text);
+        void processInput(text);
     }, [processInput]);
 
     // Handle voice error with user-friendly message
@@ -412,9 +430,12 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Clear messages and reset conversation context
     const clearMessages = useCallback(() => {
+        abortRef.current?.abort();
+        requestIdRef.current++;
         setMessages([]);
         setHasShownWelcome(false);
-        conversationContextRef.current = createEmptyContext(); // Reset conversation memory
+        setIsLoading(false);
+        historyRef.current = []; // Reset conversation memory
     }, []);
 
     const value: AssistantContextType = {
@@ -424,6 +445,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isOpen,
         voiceEnabled,
         voiceSupported,
+        isLoading,
         sendMessage,
         startVoiceInput,
         startVoiceToText,

@@ -35,7 +35,7 @@ const Footer = () => {
             </Link>
             <div className="space-y-2">
               <p className="text-sm text-gray-400 font-mono leading-relaxed">
-                &copy; {currentYear} Hakkan Parbej Shah.<br />All rights reserved.
+                &copy; {currentYear} Hakkan Shah.<br />All rights reserved.
               </p>
               <p className="text-xs text-gray-500 font-body italic">
                 "Turning coffee into code since 2022."
