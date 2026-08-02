@@ -28,6 +28,11 @@ import {
   SiGoogle,
   SiSpring,
   SiShadcnui,
+  SiElectron,
+  SiDotnet,
+  SiSharp,
+  SiApple,
+  SiAndroid,
 } from 'react-icons/si';
 import { VscVscode } from 'react-icons/vsc';
 import { DiJava } from 'react-icons/di';
@@ -255,6 +260,17 @@ export const SKILLS = [
     ],
   },
   {
+    name: "Desktop & Mobile",
+    skills: [
+      { name: "React Native", icon: SiReact, color: "#61DAFB" },
+      { name: "Android", icon: SiAndroid, color: "#3DDC84" },
+      { name: "iOS", icon: SiApple },
+      { name: "Electron", icon: SiElectron, color: "#47848F" },
+      { name: ".NET", icon: SiDotnet, color: "#512BD4" },
+      { name: "C#", icon: SiSharp, color: "#68217A" },
+    ],
+  },
+  {
     name: "Database",
     skills: [
       { name: "MongoDB", icon: SiMongodb, color: "#47A248" },
@@ -320,6 +336,9 @@ export type Experience = {
   description: string;
   reality: string;
   offerLetter?: string;
+  /** Public proof of the role — rendered as a link button on the card. */
+  profileUrl?: string;
+  profileLabel?: string;
   details: {
     overview: string;
     responsibilities: string[];
@@ -337,6 +356,8 @@ export const EXPERIENCE: Experience[] = [
     period: 'Present',
     description: 'Building AI products end to end at Persist — the agent that thinks, the backend that scales, and the interface humans actually enjoy using. Joined in Feb 2026 after winning Startupathon against 250+ builders.',
     reality: "Won a build competition against 250+ people, turned down two campus placements, and now I ship agents that browse the internet better than I do. No safety net, no complaints — mostly I just argue with a DOM tree until it obeys.",
+    profileUrl: 'https://hakkan.persist.org',
+    profileLabel: 'Persist Profile',
     details: {
       overview: 'Persist funds overlooked builders to become founders. As one of the Persistians, I own products from empty repo to production — model behaviour, backend, and UI treated as one single thing. Two live products in the first five months.',
       responsibilities: [
@@ -455,7 +476,7 @@ export const EDUCATION = [
     degree: 'B.Tech CSE',
     institution: 'Greater Kolkata College of Engineering and Management',
     period: '2022 – 2026',
-    details: 'Graduated July 2026 · CGPA: 7.5/10',
+    details: 'Graduated July 2026 · CGPA: 7.7/10',
   },
   {
     degree: 'Higher Secondary',
@@ -497,8 +518,8 @@ export const GITHUB_STATS: {
   achievements: GitHubAchievement[];
 } = {
   username: 'HakkanShah',
-  publicRepos: 27,
-  totalPRs: 32,
+  publicRepos: 35,
+  totalPRs: 57,
   longestStreak: { days: 77, period: 'Mar 5 – May 20, 2025' },
   topLanguage: 'TypeScript',
   languages: [

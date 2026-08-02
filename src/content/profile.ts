@@ -27,7 +27,7 @@
 export const PROFILE_PROSE = `
 # Who I am
 
-I'm Hakkan Parbej Shah. I'm a Fullstack AI Engineer at Persist, where I treat
+I'm Hakkan Shah (full name Hakkan Parbej Shah). I'm a Full Stack AI Engineer at Persist, where I treat
 the model, the backend and the pixels as one single product rather than three
 separate jobs.
 

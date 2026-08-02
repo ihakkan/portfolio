@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { EXPERIENCE } from '@/lib/data';
 import AnimatedDiv from './animated-div';
-import { Briefcase, Sparkles, ShieldCheck, X } from 'lucide-react';
+import { Briefcase, Sparkles, ShieldCheck, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -157,6 +157,23 @@ const ExperienceSection = () => {
                           <Sparkles className="w-4 h-4" />
                           {isRealityMode ? "What I Actually Did" : "View Details"}
                         </Button>
+
+                        {exp.profileUrl && (
+                          <Button
+                            asChild
+                            variant="default"
+                            size="sm"
+                            className={`flex-1 sm:flex-none gap-2 font-bold transition-all duration-300 h-10 sm:h-9 py-2 sm:py-0 ${isRealityMode
+                                ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-[0_0_15px_rgba(244,63,94,0.6)] hover:shadow-[0_0_25px_rgba(244,63,94,0.8)]'
+                                : 'bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--primary),0.6)] hover:shadow-[0_0_25px_rgba(var(--primary),0.8)]'
+                              }`}
+                          >
+                            <a href={exp.profileUrl} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4" />
+                              {isRealityMode ? "See It For Yourself" : (exp.profileLabel ?? 'View Profile')}
+                            </a>
+                          </Button>
+                        )}
 
                         {exp.offerLetter && (
                           <Button

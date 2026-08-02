@@ -7,7 +7,7 @@ import { SOCIAL_LINKS } from '@/lib/data';
 import AnimatedDiv from './animated-div';
 import { Button } from './ui/button';
 import { Download, RotateCcw, Trophy } from 'lucide-react';
-import { SiMongodb, SiExpress, SiReact, SiNodedotjs, SiNextdotjs, SiTypescript } from 'react-icons/si';
+import { SiMongodb, SiReact, SiNodedotjs, SiNextdotjs, SiTypescript, SiOpenai, SiPython } from 'react-icons/si';
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 
@@ -217,7 +217,7 @@ const HeroVisual = ({
               <div className="relative w-full h-full rounded-lg overflow-hidden bg-background">
                 <Image
                   src="https://github.com/HakkanShah.png"
-                  alt="Hakkan Parbej Shah, Fullstack AI Engineer at Persist"
+                  alt="Hakkan Shah, Full Stack AI Engineer at Persist"
                   width={400}
                   height={400}
                   sizes="(max-width: 768px) 60vw, 400px"
@@ -290,19 +290,20 @@ const HeroSection = () => {
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
   const phraseData = [
     {
-      text: "Full Stack Developer",
+      text: "Full Stack AI Engineer",
       icons: [
-        { Icon: SiMongodb, color: "#47A248" },
-        { Icon: SiExpress },
-        { Icon: SiReact, color: "#61DAFB" },
-        { Icon: SiNodedotjs, color: "#339933" },
+        { Icon: SiOpenai, color: "#10A37F" },
+        { Icon: SiPython, color: "#3776AB" },
+        { Icon: SiNextdotjs },
+        { Icon: SiTypescript, color: "#3178C6" },
       ]
     },
     {
-      text: "Next.JS Developer",
+      text: "Agents × Interfaces",
       icons: [
-        { Icon: SiNextdotjs },
-        { Icon: SiTypescript, color: "#3178C6" },
+        { Icon: SiReact, color: "#61DAFB" },
+        { Icon: SiNodedotjs, color: "#339933" },
+        { Icon: SiMongodb, color: "#47A248" },
       ]
     }
   ];
@@ -493,11 +494,11 @@ const HeroSection = () => {
         break;
 
       case 'hakkan':
-        addOutput('info', '👨‍💻 Hello There! I am Hakkan Parbej Shah');
-        addOutput('info', '💼 Full Stack Developer — MERN & Next.js Specialist');
-        addOutput('info', '🧠 Building scalable apps, debugging chaos, and shipping clean code');
-        addOutput('info', '⚙️ Loves architecture planning, API design & smooth user experiences');
-        addOutput('info', '🌐 Currently crafting modern web apps with speed + precision');
+        addOutput('info', '👨‍💻 Hello There! I am Hakkan Shah');
+        addOutput('info', '💼 Full Stack AI Engineer @ Persist');
+        addOutput('info', '🧠 Building AI agents that act on real interfaces — end to end');
+        addOutput('info', '⚙️ Model, backend and pixels treated as one single product');
+        addOutput('info', '🌐 Shipped OHMSchool and AURA; based in India, building remotely');
         addOutput('info', '📚 Always learning — performance, security, and production best practices');
         addOutput('info', '');
         addOutput('info', '📧 Want to connect? Try "cd contact"');
@@ -754,7 +755,7 @@ const HeroSection = () => {
               }
             }}
           >
-            {"Hakkan Parbej Shah".split(" ").map((word, i) => (
+            {"Hakkan Shah".split(" ").map((word, i) => (
               <div key={i} className="flex whitespace-nowrap">
                 {word.split("").map((char, j) => (
                   <motion.span

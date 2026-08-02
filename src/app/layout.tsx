@@ -30,9 +30,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://hakkan.is-a.dev'),
-  title: "Hakkan Parbej Shah - Fullstack AI Engineer",
+  title: "Hakkan Shah - Full Stack AI Engineer",
   description:
-    "Hakkan Parbej Shah is a Fullstack AI Engineer at Persist, building AI agents that act on real interfaces, the fullstack systems behind them, and the product UI that makes them feel obvious. Creator of OHMSchool and AURA.",
+    "Hakkan Shah is a Full Stack AI Engineer at Persist, building AI agents that act on real interfaces, the fullstack systems behind them, and the product UI that makes them feel obvious. Creator of OHMSchool and AURA.",
   manifest: "/manifest.webmanifest",
   keywords: [
     "Hakkan",
@@ -56,9 +56,9 @@ export const metadata: Metadata = {
     "hakkan.is-a.dev",
     "Hakkan Portfolio"
   ],
-  authors: [{ name: "Hakkan Parbej Shah", url: "https://hakkan.is-a.dev" }],
-  creator: "Hakkan Parbej Shah",
-  publisher: "Hakkan Parbej Shah",
+  authors: [{ name: "Hakkan Shah", url: "https://hakkan.is-a.dev" }],
+  creator: "Hakkan Shah",
+  publisher: "Hakkan Shah",
   category: "Personal Portfolio / AI Engineering",
   applicationName: "Hakkan Portfolio",
   robots: {
@@ -73,17 +73,17 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Hakkan Parbej Shah - Fullstack AI Engineer",
+    title: "Hakkan Shah - Full Stack AI Engineer",
     description:
       "Fullstack AI Engineer at Persist. I build AI agents that act on real interfaces, the backends that keep them reliable, and the interfaces humans enjoy using.",
     url: "https://hakkan.is-a.dev/",
-    siteName: "Hakkan Parbej Shah Portfolio",
+    siteName: "Hakkan Shah Portfolio",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Hakkan Parbej Shah — Fullstack AI Engineer at Persist"
+        alt: "Hakkan Shah — Full Stack AI Engineer at Persist"
       }
     ],
     locale: "en_US",
@@ -91,7 +91,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hakkan Parbej Shah - Fullstack AI Engineer",
+    title: "Hakkan Shah - Full Stack AI Engineer",
     description:
       "Fullstack AI Engineer at Persist, shipping AI agents, fullstack systems and product UI. Creator of OHMSchool and AURA.",
     creator: "@HakkanShah",
@@ -130,8 +130,8 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Person",
-              "name": "Hakkan Parbej Shah",
-              "alternateName": "Hakkan Shah",
+              "name": "Hakkan Shah",
+              "alternateName": "Hakkan Parbej Shah",
               "url": "https://hakkan.is-a.dev",
               "image": "https://hakkan.is-a.dev/og-image.jpg",
               "description":

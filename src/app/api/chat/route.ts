@@ -166,7 +166,7 @@ const buildSystemPrompt = (message: string): string => {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    return `You are the assistant embedded in Hakkan Parbej Shah's portfolio website. You answer visitors' questions about him — recruiters, clients, other developers, and the curious.
+    return `You are the assistant embedded in Hakkan Shah's portfolio website. You answer visitors' questions about him — recruiters, clients, other developers, and the curious.
 
 Today's date is ${today}.
 
