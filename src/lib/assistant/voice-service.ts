@@ -617,6 +617,29 @@ const startKeepAlive = (): void => {
     }, 5000);
 };
 
+let synthesisPrimed = false;
+
+/**
+ * Mobile browsers only allow speech synthesis that starts inside a user
+ * gesture. Our answers arrive after a network round trip, by which point the
+ * gesture is long gone — so the first tap plays a silent utterance to unlock
+ * the synthesiser for the rest of the session. Call it from a real event
+ * handler (send, mic tap); anywhere else it is a no-op that costs nothing.
+ */
+export const primeSpeechSynthesis = (): void => {
+    if (synthesisPrimed || !isSpeechSynthesisSupported()) return;
+    synthesisPrimed = true;
+
+    try {
+        const silent = new SpeechSynthesisUtterance(' ');
+        silent.volume = 0;
+        silent.rate = 10;
+        window.speechSynthesis.speak(silent);
+    } catch {
+        // Nothing to recover from — speaking will just be attempted normally.
+    }
+};
+
 export const speak = (
     text: string,
     onEnd?: () => void,
