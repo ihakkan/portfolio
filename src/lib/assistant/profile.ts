@@ -103,37 +103,96 @@ const buildContact = (): string => {
     return [...new Set([...contacts, ...socials])].join('\n');
 };
 
-const buildFacts = (): string => [
-    '## Bio',
-    ABOUT_ME,
-    '',
-    '## Work experience (most recent first)',
-    buildExperience(),
-    '',
-    '## Projects',
-    buildProjects(),
-    '',
-    '## Skills',
-    buildSkills(),
-    '',
-    '## Education',
-    buildEducation(),
-    '',
-    '## Certifications',
-    buildCertifications(),
-    '',
-    '## GitHub',
-    buildGitHub(),
-    '',
-    '## Contact and links',
-    buildContact(),
-].join('\n');
+interface ProfileSection {
+    heading: string;
+    body: string;
+    /**
+     * Small enough that omitting it saves nothing worth the risk of the model
+     * missing a fact. These add up to roughly 900 tokens in total.
+     */
+    always: boolean;
+    /** Signals that this section is what the question is actually about. */
+    cues?: RegExp;
+}
 
 /**
- * The full grounding corpus. Computed once per server instance — `data.ts` and
- * `profile.ts` are static imports, so there is nothing to invalidate.
+ * The three expensive sections — work experience, projects and the prose —
+ * are most of the corpus. Everything else is cheap.
  */
-export const PROFILE_BASE: string = `${buildFacts()}\n\n---\n\n${PROFILE_PROSE.trim()}`;
+const SECTIONS: ProfileSection[] = [
+    { heading: '## Bio', body: ABOUT_ME, always: true },
+    {
+        heading: '## Work experience (most recent first)',
+        body: buildExperience(),
+        always: false,
+        cues: /\b(work|worked|working|job|jobs|role|roles|experience|career|intern|internship|employer|compan(?:y|ies)|position|hire|hiring|available|freelance|persist|startup|professional|team)\b/i,
+    },
+    {
+        heading: '## Projects',
+        body: buildProjects(),
+        always: false,
+        cues: /\b(project|projects|built|build|building|made|make|created|shipped|app|apps|product|products|portfolio|demo|repo|side.?project|open.?source)\b/i,
+    },
+    { heading: '## Skills', body: buildSkills(), always: true },
+    { heading: '## Education', body: buildEducation(), always: true },
+    { heading: '## Certifications', body: buildCertifications(), always: true },
+    { heading: '## GitHub', body: buildGitHub(), always: true },
+    { heading: '## Contact and links', body: buildContact(), always: true },
+    {
+        heading: '## In his own words',
+        body: PROFILE_PROSE.trim(),
+        always: false,
+        cues: /\b(who|about|story|background|himself|person|personality|why|motivat\w*|believ\w*|approach|philosoph\w*|values?|style|interest\w*|hobb\w*|describe|introduce|tell me)\b/i,
+    },
+];
+
+const buildFacts = (): string =>
+    SECTIONS.map((section) => `${section.heading}\n${section.body}`).join('\n\n');
+
+/**
+ * A one-line index of what exists, for questions we couldn't classify. Lets
+ * the model answer "what do you know?" and offer detail without carrying the
+ * full projects and experience sections on every unclassified turn.
+ */
+const buildDigest = (): string =>
+    [
+        '## Available on request (ask and the detail will be provided)',
+        `Projects: ${PROJECTS.map((p) => p.title).join(', ')}`,
+        `Roles: ${EXPERIENCE.map((e) => `${e.role} at ${e.company} (${e.period})`).join('; ')}`,
+    ].join('\n');
+
+/**
+ * The grounding context for one question.
+ *
+ * Sending the whole corpus every turn costs ~6,000 prompt tokens per message,
+ * which exhausts Groq's free-tier 8K tokens-per-minute budget after two
+ * questions and comes back to the visitor as "I'm being rate limited
+ * upstream". Cheap sections always go; the expensive ones go when the question
+ * is about them.
+ */
+export const selectProfileContext = (query: string): string => {
+    const parts: string[] = [];
+    let includedHeavy = false;
+
+    for (const section of SECTIONS) {
+        if (section.always || section.cues?.test(query)) {
+            parts.push(`${section.heading}\n${section.body}`);
+            if (!section.always) includedHeavy = true;
+        }
+    }
+
+    if (!includedHeavy) parts.push(buildDigest());
+
+    return parts.join('\n\n');
+};
+
+/**
+ * The full grounding corpus, every section included. Computed once per server
+ * instance — `data.ts` and `profile.ts` are static imports, so there is
+ * nothing to invalidate. Prefer `selectProfileContext` for per-request
+ * grounding; this is the whole-corpus view, kept for tooling and size checks.
+ */
+export const PROFILE_BASE: string = buildFacts();
 
 // ============ On-demand project detail ============
 

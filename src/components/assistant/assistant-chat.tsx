@@ -180,7 +180,10 @@ const AssistantChat: React.FC<AssistantChatProps> = ({ className, mode = 'text' 
                                     ? 'Tap the mic to interrupt me.'
                                     : isThinking
                                         ? ' '
-                                        : 'Tap the mic and ask about his projects, stack or experience.'}
+                                        : !voiceEnabled
+                                            // Otherwise a muted bot just looks broken.
+                                            ? 'Answers are muted — tap Voice Off to hear them.'
+                                            : 'Tap the mic and ask about his projects, stack or experience.'}
                     </p>
                 </div>
             ) : (

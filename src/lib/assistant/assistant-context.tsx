@@ -8,7 +8,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { getWelcomeMessage, MAX_HISTORY_TURNS, type AssistantResponse, type Turn } from './types';
-import { askAssistant, AssistantApiError } from './chat-client';
+import { askAssistant, AssistantApiError, type ChatErrorCode } from './chat-client';
 import {
     startListening,
     stopListening,
@@ -75,6 +75,28 @@ const readVoicePreference = (): boolean => {
         return true;
     }
 };
+
+/**
+ * What each failure sounds like. The chat bubble can afford emoji, markdown
+ * and a tip; spoken feedback has to be one short, plain sentence.
+ */
+const SPOKEN_API_ERROR: Record<ChatErrorCode, string> = {
+    rate_limited: "I'm getting more questions than I can keep up with right now. Give me a minute and ask again.",
+    unconfigured: "I'm not wired up in this deployment yet, but you can still browse the portfolio.",
+    timeout: 'That took too long on my end. Mind asking again?',
+    upstream: "I couldn't reach my brain just now. Try again in a moment.",
+    network: "I can't reach the network right now. Check your connection and try again.",
+    bad_request: "I couldn't quite read that one. Mind rephrasing it?",
+};
+
+/** Emoji read aloud as nothing useful, so take them out of spoken notices. */
+const stripForSpeech = (text: string): string =>
+    text.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+
+const SPOKEN_GENERIC_ERROR = 'Something went wrong on my side. Mind asking that again?';
+
+/** How long an unspoken notice stays on screen in voice mode. */
+const NOTICE_CAPTION_MS = 4500;
 
 // ============ Context ============
 
@@ -245,6 +267,46 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return message;
     }, []);
 
+    /**
+     * Say a one-off line (an error, a notice) without putting it in the
+     * model's conversation history. In voice mode an error used to be
+     * completely silent — the bubble is in the text transcript the visitor
+     * isn't looking at — so the bot just appeared to ignore them.
+     */
+    const speakNotice = useCallback((spoken: string) => {
+        if (!spoken) return;
+
+        const clearIfStillShowing = () =>
+            setCaption((current) => (current?.text === spoken ? null : current));
+
+        setCaption({ text: spoken, source: 'assistant' });
+
+        // Muted: the caption is the only feedback there is, so leave it up.
+        if (!voiceEnabled) {
+            setTimeout(clearIfStillShowing, NOTICE_CAPTION_MS);
+            return;
+        }
+
+        speak(
+            spoken,
+            () => {
+                setState((current) => (current === 'speaking' ? 'idle' : current));
+                clearIfStillShowing();
+            },
+            () => setState('speaking'),
+            { onCaption: (chunk) => setCaption({ text: chunk, source: 'assistant' }) }
+        );
+    }, [voiceEnabled]);
+
+    /** Show a notice in the transcript and say it out loud. */
+    const announce = useCallback(
+        (content: string, spoken: string, type: 'error' | 'info' = 'error') => {
+            addSystemMessage(content, type);
+            speakNotice(spoken);
+        },
+        [addSystemMessage, speakNotice]
+    );
+
     // Show welcome message when opened for the first time
     // Needs to use internal addAssistantMessage or generic one?
     // Using addAssistantMessage is better as it handles internal logic
@@ -311,15 +373,16 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setState('idle');
 
             const isApiError = error instanceof AssistantApiError;
-            addSystemMessage(
-                isApiError ? error.message : "Sorry, something went wrong. Please try again!",
+            announce(
+                isApiError ? error.message : 'Sorry, something went wrong. Please try again!',
+                isApiError ? SPOKEN_API_ERROR[error.code] ?? SPOKEN_GENERIC_ERROR : SPOKEN_GENERIC_ERROR,
                 isApiError && error.code === 'unconfigured' ? 'info' : 'error'
             );
         } finally {
             clearTimeout(thinkingTimeout);
             if (myRequestId === requestIdRef.current) setIsLoading(false);
         }
-    }, [addUserMessage, addAssistantMessage, addSystemMessage, voiceEnabled]);
+    }, [addUserMessage, addAssistantMessage, announce, voiceEnabled]);
 
 
     // Send text message
@@ -335,28 +398,30 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const handleVoiceError = useCallback((errorMessage: string, voiceError?: VoiceError) => {
         setState('idle');
 
-        if (voiceError && voiceError.userFriendlyMessage) {
-            // Show user-friendly error message
-            const errorContent = `${voiceError.userFriendlyMessage}\n\n💡 *${voiceError.suggestion}*`;
-            addSystemMessage(errorContent, 'error');
+        if (voiceError?.userFriendlyMessage) {
+            announce(
+                `${voiceError.userFriendlyMessage}\n\n💡 *${voiceError.suggestion}*`,
+                `${stripForSpeech(voiceError.userFriendlyMessage)} ${voiceError.suggestion}`
+            );
         } else {
-            // Generic fallback message
-            addSystemMessage(
+            announce(
                 "Voice input ran into an issue! 🎤\n\n💡 *No worries – you can type your message using text mode instead.*",
-                'error'
+                'Voice input ran into an issue. You can type your message instead.'
             );
         }
 
         console.error('Voice input error:', errorMessage);
-    }, [addSystemMessage]);
+    }, [announce]);
 
     const startVoiceInput = useCallback(() => {
         if (!voiceSupported) {
-            addSystemMessage(
+            announce(
                 isSpeechRecognitionSupported()
                     ? "This browser can't read answers aloud. 🔇\n\n💡 *Voice input still works, or just use text mode.*"
                     : "Voice input isn't supported in this browser! 🔇\n\n💡 *Chrome, Edge or Safari support it — or use text mode.*",
-                'error'
+                isSpeechRecognitionSupported()
+                    ? ''
+                    : "Voice input isn't supported in this browser. Chrome, Edge or Safari support it, or you can type instead."
             );
             return;
         }
@@ -371,9 +436,9 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (permission === 'denied') {
                 stopListening();
                 setState('idle');
-                addSystemMessage(
+                announce(
                     'Microphone access is blocked! 🔒\n\n💡 *Allow it from the padlock icon in your address bar, then tap the mic again.*',
-                    'error'
+                    'Microphone access is blocked. Allow it from the padlock icon in your address bar, then tap the mic again.'
                 );
             }
         });
@@ -401,16 +466,16 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 setState((current) => (current === 'listening' ? 'idle' : current));
             }
         );
-    }, [voiceSupported, voiceEnabled, processInput, handleVoiceError, addSystemMessage]);
+    }, [voiceSupported, voiceEnabled, processInput, handleVoiceError, announce]);
 
     // Start voice-to-text (fills input box instead of auto-sending)
     const transcriptCallbackRef = useRef<((text: string) => void) | null>(null);
 
     const startVoiceToText = useCallback((onTranscript: (text: string) => void) => {
         if (!voiceSupported) {
-            addSystemMessage(
+            announce(
                 "Voice isn't supported in this browser! 🔇\n\n💡 *Try using Chrome, Edge, or Safari for voice features.*",
-                'error'
+                "Voice isn't supported in this browser. Try Chrome, Edge or Safari."
             );
             return;
         }
@@ -433,7 +498,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             handleVoiceError,
             () => setState((current) => (current === 'listening' ? 'idle' : current))
         );
-    }, [voiceSupported, handleVoiceError, addSystemMessage]);
+    }, [voiceSupported, handleVoiceError, announce]);
 
     const stopVoiceInput = useCallback(() => {
         const pendingTranscript = interimTranscriptRef.current.trim();
