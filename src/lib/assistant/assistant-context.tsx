@@ -15,7 +15,9 @@ import {
     speak,
     cancelSpeaking,
     isVoiceSupported,
+    isSpeechRecognitionSupported,
     preloadVoices,
+    checkMicrophonePermission,
     VoiceError,
 } from './voice-service';
 
@@ -47,16 +49,31 @@ interface AssistantContextType {
     voiceEnabled: boolean;
     voiceSupported: boolean;
     isLoading: boolean;
+    /** True while an answer is being read aloud. */
+    isSpeaking: boolean;
     sendMessage: (text: string) => void;
     startVoiceInput: () => void;
     startVoiceToText: (onTranscript: (text: string) => void) => void;
     stopVoiceInput: () => void;
+    /** Stop the current answer being read aloud, without ending the chat. */
+    stopSpeaking: () => void;
     setVoiceEnabled: (enabled: boolean) => void;
     setIsOpen: (open: boolean) => void;
     clearMessages: () => void;
     addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
     caption: Caption | null;
 }
+
+const VOICE_PREFERENCE_KEY = 'hakkan_assistant_voice_enabled';
+
+const readVoicePreference = (): boolean => {
+    if (typeof window === 'undefined') return true;
+    try {
+        return window.localStorage.getItem(VOICE_PREFERENCE_KEY) !== 'false';
+    } catch {
+        return true;
+    }
+};
 
 // ============ Context ============
 
@@ -69,7 +86,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [state, setState] = useState<AssistantState>('idle');
     const [caption, setCaption] = useState<Caption | null>(null);
     const [isOpen, setIsOpen] = useState(false);
-    const [voiceEnabled, setVoiceEnabled] = useState(true);
+    const [voiceEnabled, setVoiceEnabledState] = useState(true);
     const [voiceSupported, setVoiceSupported] = useState(false);
     const [hasShownWelcome, setHasShownWelcome] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -84,12 +101,42 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const abortRef = useRef<AbortController | null>(null);
 
     const interimTranscriptRef = useRef<string>('');
-    const captionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Check voice support on mount
+    // Check voice support and restore the visitor's audio preference
     useEffect(() => {
         setVoiceSupported(isVoiceSupported());
+        setVoiceEnabledState(readVoicePreference());
         preloadVoices();
+    }, []);
+
+    const setVoiceEnabled = useCallback((enabled: boolean) => {
+        setVoiceEnabledState(enabled);
+        try {
+            window.localStorage.setItem(VOICE_PREFERENCE_KEY, String(enabled));
+        } catch {
+            // Private mode — the preference just won't persist.
+        }
+        if (!enabled) cancelSpeaking();
+    }, []);
+
+    const stopSpeaking = useCallback(() => {
+        cancelSpeaking();
+        setCaption(null);
+        setState((current) => (current === 'speaking' ? 'idle' : current));
+    }, []);
+
+    // Leaving the chat should never leave audio playing behind it.
+    useEffect(() => {
+        if (isOpen) return;
+        cancelSpeaking();
+        stopListening();
+        setCaption(null);
+        setState('idle');
+    }, [isOpen]);
+
+    useEffect(() => () => {
+        cancelSpeaking();
+        stopListening();
     }, []);
 
     // Helper to generate unique ID
@@ -135,58 +182,39 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }, 500);
         }
 
-        // Speak response if voice is enabled with robust error handling
-        // NOTE: Speaking state is set by onStart callback to sync animation with actual voice
+        // Read the answer aloud. Captions are driven by the audio itself, one
+        // spoken chunk at a time, so they can't drift out of sync.
         if (voiceEnabled && response.speakText) {
-            // Safety timeout: if voice gets stuck, reset state after 30 seconds
+            const speakText = response.speakText;
+
+            // Backstop only: the voice service has its own start watchdog, so
+            // this is scaled to the length of the answer and should never fire.
+            const estimatedMs = Math.min(120000, (speakText.length / 12) * 1000 + 15000);
             const safetyTimeout = setTimeout(() => {
-                setState((currentState) => {
-                    if (currentState === 'speaking') {
-                        console.warn('Voice speaking timeout - resetting state');
+                setState((current) => {
+                    if (current === 'speaking' || current === 'thinking') {
+                        console.warn('Speech ran past its expected duration - resetting state');
                         cancelSpeaking();
                         return 'idle';
                     }
-                    return currentState;
+                    return current;
                 });
-            }, 30000);
+                setCaption(null);
+            }, estimatedMs);
 
             speak(
-                response.speakText,
+                speakText,
                 () => {
                     clearTimeout(safetyTimeout);
-                    if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
-                    setState('idle'); // onEnd - back to idle
+                    // 'thinking' too: speech may never have started (muted tab,
+                    // missing voices), and the UI must not stay stuck.
+                    setState((current) => (current === 'speaking' || current === 'thinking' ? 'idle' : current));
                     setCaption(null);
                 },
-                () => {
-                    setState('speaking'); // onStart
-                    // Chunk long text for cinematic subtitles
-                    const text = response.speakText || '';
-                    if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
-
-                    const words = text.split(' ');
-                    const chunkSize = 10; // Words per slide
-
-                    if (words.length <= chunkSize) {
-                        setCaption({ text, source: 'assistant' });
-                    } else {
-                        let currentIndex = 0;
-                        const showNextChunk = () => {
-                            if (currentIndex >= words.length) return;
-
-                            const chunk = words.slice(currentIndex, currentIndex + chunkSize).join(' ');
-                            setCaption({ text: chunk, source: 'assistant' });
-
-                            // Estimate reading time: 300ms per word + 500ms base
-                            const duration = (chunk.split(' ').length * 300) + 500;
-                            currentIndex += chunkSize;
-
-                            captionTimeoutRef.current = setTimeout(showNextChunk, duration);
-                        };
-                        showNextChunk();
-                    }
-                },
-                {} // options
+                () => setState('speaking'),
+                {
+                    onCaption: (chunk) => setCaption({ text: chunk, source: 'assistant' }),
+                }
             );
         }
 
@@ -221,7 +249,9 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Using addAssistantMessage is better as it handles internal logic
     useEffect(() => {
         if (isOpen && !hasShownWelcome) {
-            const welcome = getWelcomeMessage();
+            // Deliberately silent: nobody expects a website to start talking at
+            // them. Answers are spoken; the greeting is not.
+            const { speakText: _unused, ...welcome } = getWelcomeMessage();
             addAssistantMessage(welcome);
             setHasShownWelcome(true);
         }
@@ -316,68 +346,54 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.error('Voice input error:', errorMessage);
     }, [addSystemMessage]);
 
-    // Voice input handlers
-    const listeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
     const startVoiceInput = useCallback(() => {
         if (!voiceSupported) {
             addSystemMessage(
-                "Voice isn't supported in this browser! 🔇\n\n💡 *Try using Chrome, Edge, or Safari for voice features, or use text mode.*",
+                isSpeechRecognitionSupported()
+                    ? "This browser can't read answers aloud. 🔇\n\n💡 *Voice input still works, or just use text mode.*"
+                    : "Voice input isn't supported in this browser! 🔇\n\n💡 *Chrome, Edge or Safari support it — or use text mode.*",
                 'error'
             );
             return;
         }
 
+        // Speaking over the visitor is rude: stop the answer when they talk.
         cancelSpeaking();
         setState('listening');
         interimTranscriptRef.current = '';
 
-        // Safety timeout: if listening state gets stuck, reset after 20 seconds
-        if (listeningTimeoutRef.current) {
-            clearTimeout(listeningTimeoutRef.current);
-        }
-        listeningTimeoutRef.current = setTimeout(() => {
-            setState((currentState) => {
-                if (currentState === 'listening') {
-                    console.warn('Listening timeout - resetting state');
-                    stopListening();
-                    return 'idle';
-                }
-                return currentState;
-            });
-        }, 20000);
+        void checkMicrophonePermission().then((permission) => {
+            if (permission === 'denied') {
+                stopListening();
+                setState('idle');
+                addSystemMessage(
+                    'Microphone access is blocked! 🔒\n\n💡 *Allow it from the padlock icon in your address bar, then tap the mic again.*',
+                    'error'
+                );
+            }
+        });
 
         startListening(
             (transcript, isFinal) => {
-                // Update caption with live transcript
                 setCaption({ text: transcript, source: 'user' });
 
                 if (isFinal) {
-                    if (listeningTimeoutRef.current) {
-                        clearTimeout(listeningTimeoutRef.current);
-                        listeningTimeoutRef.current = null;
-                    }
-                    processInput(transcript);
-                    // Don't clear caption yet, let it persist a moment or until bot speaks
-                    setTimeout(() => setCaption(null), 1500);
+                    // Clear immediately so stopVoiceInput can't resend it.
+                    interimTranscriptRef.current = '';
+                    void processInput(transcript);
+                    setTimeout(() => setCaption(null), 1200);
                 } else {
                     interimTranscriptRef.current = transcript;
                 }
             },
             (errorMessage, voiceError) => {
                 setCaption(null);
-                if (listeningTimeoutRef.current) {
-                    clearTimeout(listeningTimeoutRef.current);
-                    listeningTimeoutRef.current = null;
-                }
                 handleVoiceError(errorMessage, voiceError);
             },
             () => {
-                if (listeningTimeoutRef.current) {
-                    clearTimeout(listeningTimeoutRef.current);
-                    listeningTimeoutRef.current = null;
-                }
-                setState('idle');
+                // Only release the UI if we're still listening — by now the
+                // answer may already be playing.
+                setState((current) => (current === 'listening' ? 'idle' : current));
             }
         );
     }, [voiceSupported, processInput, handleVoiceError, addSystemMessage]);
@@ -401,30 +417,32 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         startListening(
             (transcript, isFinal) => {
-                // Send interim results to input as user types
-                if (transcriptCallbackRef.current) {
-                    transcriptCallbackRef.current(transcript);
-                }
+                // Send interim results to the input as the visitor speaks
+                transcriptCallbackRef.current?.(transcript);
                 if (isFinal) {
+                    interimTranscriptRef.current = '';
+                    transcriptCallbackRef.current = null;
                     setState('idle');
                 }
             },
             handleVoiceError,
-            () => {
-                setState('idle');
-            }
+            () => setState((current) => (current === 'listening' ? 'idle' : current))
         );
     }, [voiceSupported, handleVoiceError, addSystemMessage]);
 
     const stopVoiceInput = useCallback(() => {
-        stopListening();
-        setState('idle');
-        transcriptCallbackRef.current = null;
+        const pendingTranscript = interimTranscriptRef.current.trim();
+        const wasVoiceToText = transcriptCallbackRef.current !== null;
 
-        // Process any interim transcript (only for voice mode)
-        if (interimTranscriptRef.current.trim() && !transcriptCallbackRef.current) {
-            processInput(interimTranscriptRef.current);
-            interimTranscriptRef.current = '';
+        stopListening();
+        interimTranscriptRef.current = '';
+        transcriptCallbackRef.current = null;
+        setCaption(null);
+        setState((current) => (current === 'listening' ? 'idle' : current));
+
+        // In voice mode, stopping means "I'm done talking" — send it.
+        if (pendingTranscript && !wasVoiceToText) {
+            void processInput(pendingTranscript);
         }
     }, [processInput]);
 
@@ -446,10 +464,12 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         voiceEnabled,
         voiceSupported,
         isLoading,
+        isSpeaking: state === 'speaking',
         sendMessage,
         startVoiceInput,
         startVoiceToText,
         stopVoiceInput,
+        stopSpeaking,
         setVoiceEnabled,
         setIsOpen,
         clearMessages,
