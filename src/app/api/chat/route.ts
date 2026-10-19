@@ -11,7 +11,7 @@
 
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { PROFILE_BASE, matchProjects, getProjectDetail } from '@/lib/assistant/profile';
+import { selectProfileContext, matchProjects, getProjectDetail } from '@/lib/assistant/profile';
 import { SECTION_IDS, getSectionId, type SectionId } from '@/lib/assistant/sections';
 import { optimizeForSpeech } from '@/lib/assistant/types';
 
@@ -40,6 +40,9 @@ const FALLBACK_MODEL = process.env.GROQ_FALLBACK_MODEL ?? 'openai/gpt-oss-20b';
 
 /** 8s leaves ~2s for parsing inside Vercel's ~10s Hobby function limit. */
 const UPSTREAM_TIMEOUT_MS = 8_000;
+
+/** How much of each past turn is worth re-sending. Answers are ~80 words. */
+const HISTORY_CHARS_FORWARDED = 700;
 
 // ============ Request / response contracts ============
 
@@ -206,7 +209,7 @@ Reply with ONLY a JSON object and nothing outside it:
 
 ## PROFILE
 
-${PROFILE_BASE}${detail ? `\n\n## Extra detail relevant to this question\n\n${detail}` : ''}`;
+${selectProfileContext(message)}${detail ? `\n\n## Extra detail relevant to this question\n\n${detail}` : ''}`;
 };
 
 // ============ Model output parsing ============
@@ -308,7 +311,12 @@ export async function POST(req: Request) {
                 model,
                 messages: [
                     { role: 'system', content: buildSystemPrompt(message) },
-                    ...history,
+                    // Trimmed rather than rejected: the tail of an older turn
+                    // is worth far less than the tokens it costs every request.
+                    ...history.map((turn) => ({
+                        ...turn,
+                        content: turn.content.slice(0, HISTORY_CHARS_FORWARDED),
+                    })),
                     { role: 'user', content: message },
                 ],
                 response_format: { type: 'json_object' },
