@@ -25,8 +25,18 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 /**
  * Overridable so a model deprecation is a dashboard change, not a redeploy.
  * Verify the current id at https://console.groq.com/docs/models before shipping.
+ *
+ * llama-3.3-70b-versatile, the previous default, was decommissioned on
+ * 2026-08-16 for free and developer tiers, which took the assistant down with
+ * it — every answer became "I couldn't reach my brain just now."
  */
-const MODEL = process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile';
+const MODEL = process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b';
+
+/**
+ * Used once if the configured model is rejected as unknown or retired, so the
+ * next decommission degrades instead of taking the whole assistant offline.
+ */
+const FALLBACK_MODEL = process.env.GROQ_FALLBACK_MODEL ?? 'openai/gpt-oss-20b';
 
 /** 8s leaves ~2s for parsing inside Vercel's ~10s Hobby function limit. */
 const UPSTREAM_TIMEOUT_MS = 8_000;
@@ -287,15 +297,15 @@ export async function POST(req: Request) {
     const limitMessage = rateLimited(clientIp(req));
     if (limitMessage) return fail(429, 'rate_limited', limitMessage);
 
-    try {
-        const upstream = await fetch(GROQ_URL, {
+    const callGroq = (model: string) =>
+        fetch(GROQ_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-                model: MODEL,
+                model,
                 messages: [
                     { role: 'system', content: buildSystemPrompt(message) },
                     ...history,
@@ -309,15 +319,39 @@ export async function POST(req: Request) {
             signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
         });
 
+    /** A retired or misspelled model id, as opposed to a real outage. */
+    const isModelProblem = (status: number, detail: string) =>
+        status === 404 ||
+        (status === 400 && /model|decommission|deprecat|not\s*found/i.test(detail));
+
+    try {
+        let usedModel = MODEL;
+        let upstream = await callGroq(usedModel);
+
         if (!upstream.ok) {
             const detail = await upstream.text().catch(() => '');
-            console.error(`[chat] groq ${upstream.status}: ${detail.slice(0, 500)}`);
+            console.error(`[chat] groq ${upstream.status} (${usedModel}): ${detail.slice(0, 500)}`);
 
             if (upstream.status === 429) {
                 console.error(`[chat] groq retry-after: ${upstream.headers.get('retry-after')}`);
                 return fail(429, 'rate_limited', "I'm being rate limited upstream. Give me a minute?");
             }
-            return fail(502, 'upstream', "I couldn't reach my brain just now. Try again in a moment?");
+
+            // One retry on a model that no longer exists — Groq retires ids on
+            // its own schedule, and that shouldn't read as a broken assistant.
+            if (isModelProblem(upstream.status, detail) && FALLBACK_MODEL !== usedModel) {
+                console.warn(`[chat] ${usedModel} rejected, retrying with ${FALLBACK_MODEL}`);
+                usedModel = FALLBACK_MODEL;
+                upstream = await callGroq(usedModel);
+
+                if (!upstream.ok) {
+                    const retryDetail = await upstream.text().catch(() => '');
+                    console.error(`[chat] groq ${upstream.status} (${usedModel}): ${retryDetail.slice(0, 500)}`);
+                    return fail(502, 'upstream', "I couldn't reach my brain just now. Try again in a moment?");
+                }
+            } else {
+                return fail(502, 'upstream', "I couldn't reach my brain just now. Try again in a moment?");
+            }
         }
 
         const data = await upstream.json();
@@ -330,7 +364,7 @@ export async function POST(req: Request) {
 
         // Ground truth for the prompt budget — watch this during rollout.
         console.log(
-            `[chat] model=${MODEL} prompt_tokens=${data?.usage?.prompt_tokens} completion_tokens=${data?.usage?.completion_tokens}`
+            `[chat] model=${usedModel} prompt_tokens=${data?.usage?.prompt_tokens} completion_tokens=${data?.usage?.completion_tokens}`
         );
 
         return NextResponse.json(parseModelOutput(content));

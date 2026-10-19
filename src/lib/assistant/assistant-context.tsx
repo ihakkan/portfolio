@@ -17,6 +17,7 @@ import {
     isVoiceSupported,
     isSpeechRecognitionSupported,
     preloadVoices,
+    primeSpeechSynthesis,
     checkMicrophonePermission,
     VoiceError,
 } from './voice-service';
@@ -324,8 +325,11 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Send text message
     const sendMessage = useCallback((text: string) => {
         cancelSpeaking();
+        // Runs inside the tap that sent the message, which is the only moment
+        // mobile browsers will let us unlock speech synthesis.
+        if (voiceEnabled) primeSpeechSynthesis();
         void processInput(text);
-    }, [processInput]);
+    }, [processInput, voiceEnabled]);
 
     // Handle voice error with user-friendly message
     const handleVoiceError = useCallback((errorMessage: string, voiceError?: VoiceError) => {
@@ -359,6 +363,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         // Speaking over the visitor is rude: stop the answer when they talk.
         cancelSpeaking();
+        if (voiceEnabled) primeSpeechSynthesis();
         setState('listening');
         interimTranscriptRef.current = '';
 
@@ -396,7 +401,7 @@ export const AssistantProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 setState((current) => (current === 'listening' ? 'idle' : current));
             }
         );
-    }, [voiceSupported, processInput, handleVoiceError, addSystemMessage]);
+    }, [voiceSupported, voiceEnabled, processInput, handleVoiceError, addSystemMessage]);
 
     // Start voice-to-text (fills input box instead of auto-sending)
     const transcriptCallbackRef = useRef<((text: string) => void) | null>(null);
